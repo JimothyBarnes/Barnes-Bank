@@ -203,11 +203,8 @@
         <div id="admin-user-list"></div>
         
         <div class="section-title">Create Account</div>
-        <input type="text" id="new-kid-name" placeholder="Display Name">
-        <div class="row-inputs">
-            <input type="text" id="new-kid-user" placeholder="Username" autocapitalize="none">
-            <input type="password" id="new-kid-pass" placeholder="Password">
-        </div>
+        <input type="text" id="new-kid-user" placeholder="Username" autocapitalize="none">
+        <input type="password" id="new-kid-pass" placeholder="Password">
         <button class="btn-primary btn-secondary" onclick="createKid()">Create Account</button>
     </div>
 
@@ -552,17 +549,18 @@
     }
 
     function createKid() {
-        const name = document.getElementById('new-kid-name').value.trim();
         const id = document.getElementById('new-kid-user').value.toLowerCase().trim();
         const pass = document.getElementById('new-kid-pass').value;
 
-        if(!name || !id || !pass) return showToast("Fill all fields");
+        if(!id || !pass) return showToast("Fill all fields");
         if(dbData.users.find(u => u.id === id)) return showToast("Username exists");
 
+        // Use username as display name (capitalize first letter)
+        const name = id.charAt(0).toUpperCase() + id.slice(1);
+        
         dbData.users.push({ id, name, pass, role: 'kid', balanceBB: 0, balanceUSD: 0 });
         saveDB();
         
-        document.getElementById('new-kid-name').value = '';
         document.getElementById('new-kid-user').value = '';
         document.getElementById('new-kid-pass').value = '';
         showToast("Account created"); renderAdminData();
