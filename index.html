@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Barnes Bank | Dual Currency & Time Tracking</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --surface: #1c1c1e;
+            --surface-light: #2c2c2e;
+            --gold: #d4af37;
+            --usd-green: #30d158;
+            --text-main: #ffffff;
+            --text-muted: #8e8e93;
+            --accent-red: #ff453a;
+            --accent-blue: #0a84ff;
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-dark); color: var(--text-main);
+            margin: 0; display: flex; justify-content: center; min-height: 100vh;
+        }
+
+        .app-container {
+            width: 100%; max-width: 430px; background: var(--bg-dark);
+            display: flex; flex-direction: column; position: relative; overflow-x: hidden;
+        }
+
+        /* --- Header & UI --- */
+        .header {
+            padding: 30px 20px 10px; display: flex; justify-content: space-between;
+            align-items: center; position: sticky; top: 0; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px); z-index: 10;
+        }
+        .logo { font-weight: 800; font-size: 1.2rem; color: var(--gold); letter-spacing: 0.5px; }
+        
+        .btn-icon {
+            background: var(--surface); border: none; color: var(--text-main);
+            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: 0.2s;
+        }
+        .btn-icon:active { transform: scale(0.9); }
+
+        .btn-primary {
+            background: var(--text-main); color: var(--bg-dark); border: none; padding: 16px;
+            border-radius: var(--radius); font-weight: 600; font-size: 1rem; width: 100%;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-secondary { background: var(--surface-light); color: var(--text-main); }
+        .btn-green { background: var(--usd-green); color: black; }
+        .btn-red { background: rgba(255, 69, 58, 0.2); color: var(--accent-red); }
+
+        input, select {
+            width: 100%; padding: 16px; background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.05); border-radius: var(--radius);
+            color: white; font-size: 1rem; margin-bottom: 12px; outline: none;
+        }
+        input:focus, select:focus { border-color: var(--gold); }
+        
+        .row-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
+        .row-inputs > * { margin-bottom: 0; }
+
+        /* --- Views & Cards --- */
+        .view { display: none; padding: 20px; animation: fadeIn 0.3s ease; padding-bottom: 90px; }
+        .view.active { display: block; }
+
+        .balances-wrapper { display: flex; gap: 12px; margin-bottom: 24px; }
+        .card-balance {
+            flex: 1; padding: 20px; border-radius: 20px; text-align: center;
+            background: linear-gradient(145deg, #1f1f1f, #121212);
+        }
+        .card-bb { border: 1px solid rgba(212, 175, 55, 0.2); box-shadow: 0 10px 30px rgba(212, 175, 55, 0.05); }
+        .card-usd { border: 1px solid rgba(48, 209, 88, 0.2); box-shadow: 0 10px 30px rgba(48, 209, 88, 0.05); }
+        
+        .card-label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        .card-amt { font-size: 2rem; font-weight: 800; margin: 8px 0; color: var(--text-main); }
+        .card-curr { font-size: 1rem; vertical-align: super; }
+        .curr-bb { color: var(--gold); }
+        .curr-usd { color: var(--usd-green); }
+
+        .section-title { font-size: 1.1rem; font-weight: 600; margin: 24px 0 16px; color: var(--text-main); }
+
+        .list-item {
+            background: var(--surface); border-radius: var(--radius); padding: 16px;
+            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .list-col { display: flex; flex-direction: column; gap: 4px; }
+        .item-title { font-weight: 600; font-size: 0.95rem; }
+        .item-sub { color: var(--text-muted); font-size: 0.8rem; }
+        .item-amt { font-weight: 600; font-size: 1rem; }
+        
+        /* --- Active Shift Banner --- */
+        .active-shift {
+            background: rgba(10, 132, 255, 0.1); border: 1px solid var(--accent-blue);
+            border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .pulse-dot {
+            width: 10px; height: 10px; background: var(--accent-blue);
+            border-radius: 50%; display: inline-block; margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* --- Navigation --- */
+        .bottom-nav {
+            position: fixed; bottom: 0; width: 100%; max-width: 430px;
+            background: rgba(28, 28, 30, 0.9); backdrop-filter: blur(20px);
+            display: flex; justify-content: space-around; padding: 12px 0 24px;
+            border-top: 1px solid rgba(255,255,255,0.05); z-index: 100;
+        }
+        .nav-btn {
+            background: none; border: none; color: var(--text-muted);
+            font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 4px;
+            cursor: pointer; transition: 0.2s; width: 60px;
+        }
+        .nav-btn i { font-size: 1.2rem; }
+        .nav-btn.active { color: var(--text-main); }
+
+        /* --- Toasts --- */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 90%; max-width: 400px; }
+        .toast {
+            background: var(--surface-light); color: white; padding: 16px; border-radius: 12px;
+            margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(10,132,255,0.7); } 70% { box-shadow: 0 0 0 10px rgba(10,132,255,0); } 100% { box-shadow: 0 0 0 0 rgba(10,132,255,0); } }
+        
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="toast-container"></div>
+
+    <header class="header">
+        <div class="logo">BARNES<span style="color:var(--text-main)">BANK</span></div>
+        <button class="btn-icon" id="btnLogout" style="display:none;" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+    </header>
+
+    <div id="view-login" class="view active">
+        <div style="margin-top: 40px; margin-bottom: 40px;">
+            <h1 style="font-size: 2.2rem; margin: 0 0 10px;">Sign In</h1>
+            <p style="color: var(--text-muted); margin: 0;">Dual-Currency Wealth Portal.</p>
+        </div>
+        <input type="text" id="login-user" placeholder="Username" autocapitalize="none">
+        <input type="password" id="login-pass" placeholder="Passcode">
+        <button class="btn-primary" onclick="login()">Authenticate</button>
+    </div>
+
+    <div id="view-kid-home" class="view">
+        <div class="balances-wrapper">
+            <div class="card-balance card-bb">
+                <div class="card-label">Barnes Bucks</div>
+                <div class="card-amt"><span id="kid-bal-bb">0</span><span class="card-curr curr-bb">BB</span></div>
+            </div>
+            <div class="card-balance card-usd">
+                <div class="card-label">USD Dollars</div>
+                <div class="card-amt"><span class="card-curr curr-usd">$</span><span id="kid-bal-usd">0.00</span></div>
+            </div>
+        </div>
+        
+        <div id="kid-active-shifts"></div>
+
+        <div class="section-title">Recent Ledger</div>
+        <div id="kid-transactions"></div>
+    </div>
+
+    <div id="view-kid-jobs" class="view">
+        <div class="section-title">Open Contracts</div>
+        <div id="kid-jobs-list"></div>
+    </div>
+
+    <div id="view-kid-send" class="view">
+        <div class="section-title">Transfer Funds</div>
+        <select id="transfer-to"></select>
+        <div class="row-inputs">
+            <select id="transfer-currency" style="flex: 1;">
+                <option value="BB">Barnes Bucks (BB)</option>
+                <option value="USD">Dollars (USD)</option>
+            </select>
+            <input type="number" id="transfer-amount" placeholder="Amount" style="flex: 2;">
+        </div>
+        <input type="text" id="transfer-note" placeholder="Memo (Optional)">
+        <button class="btn-primary" onclick="processTransfer()">Authorize Transfer</button>
+    </div>
+
+    <div id="view-admin-users" class="view">
+        <div class="section-title">Family Accounts</div>
+        <div id="admin-user-list"></div>
+        
+        <div class="section-title">Create Account</div>
+        <input type="text" id="new-kid-name" placeholder="Display Name">
+        <div class="row-inputs">
+            <input type="text" id="new-kid-user" placeholder="Username" autocapitalize="none">
+            <input type="password" id="new-kid-pass" placeholder="Password">
+        </div>
+        <button class="btn-primary btn-secondary" onclick="createKid()">Create Account</button>
+    </div>
+
+    <div id="view-admin-jobs" class="view">
+        <div class="section-title">Issue Contract / Shift</div>
+        <input type="text" id="new-job-title" placeholder="Task Description (e.g., Shop Cleanup)">
+        
+        <div class="row-inputs">
+            <select id="new-job-type">
+                <option value="fixed">Fixed Rate</option>
+                <option value="hourly">Hourly Punch Clock</option>
+            </select>
+            <select id="new-job-currency">
+                <option value="BB">Barnes Bucks</option>
+                <option value="USD">Dollars (USD)</option>
+            </select>
+        </div>
+        <input type="number" id="new-job-reward" placeholder="Reward / Hourly Rate">
+        <button class="btn-primary" onclick="createJob()">Post to Floor</button>
+
+        <div class="section-title" style="margin-top:40px;">Pending Review & Approvals</div>
+        <div id="admin-approval-list"></div>
+    </div>
+
+    <nav class="bottom-nav" id="nav-kid" style="display:none;">
+        <button class="nav-btn active" onclick="switchTab('kid', 'home', this)"><i class="fas fa-wallet"></i>Home</button>
+        <button class="nav-btn" onclick="switchTab('kid', 'jobs', this)"><i class="fas fa-stopwatch"></i>Jobs</button>
+        <button class="nav-btn" onclick="switchTab('kid', 'send', this)"><i class="fas fa-exchange-alt"></i>Transfer</button>
+    </nav>
+
+    <nav class="bottom-nav" id="nav-admin" style="display:none;">
+        <button class="nav-btn active" onclick="switchTab('admin', 'users', this)"><i class="fas fa-users"></i>Accounts</button>
+        <button class="nav-btn" onclick="switchTab('admin', 'jobs', this)"><i class="fas fa-clipboard-check"></i>Contracts</button>
+    </nav>
+</div>
+
+<script>
+    // --- FIREBASE CONFIGURATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCrQVO98Dx008AaZMafAOdqvDZW2k3U6eo",
+        authDomain: "bbbwindsurf.firebaseapp.com",
+        projectId: "bbbwindsurf",
+        storageBucket: "bbbwindsurf.firebasestorage.app",
+        messagingSenderId: "510414209832",
+        appId: "1:510414209832:web:e91cc2a8f9996b42e1061d",
+        measurementId: "G-1YZMD74LVL"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let dbData = {
+        users: [],
+        jobs: [],
+        transactions: []
+    };
+
+    // Firebase functions
+    async function saveDB() {
+        try {
+            await db.collection('config').doc('data').set(dbData);
+        } catch (error) {
+            console.error("Error saving data:", error);
+            showToast("Error saving data");
+        }
+    }
+
+    async function loadDB() {
+        try {
+            const doc = await db.collection('config').doc('data').get();
+            if (doc.exists) {
+                dbData = doc.data();
+                // Ensure admin user exists
+                if (!dbData.users.find(u => u.id === 'admin')) {
+                    dbData.users.push({ id: 'admin', name: 'Parents', pass: 'parent', role: 'admin', balanceBB: 0, balanceUSD: 0 });
+                    await saveDB();
+                }
+            } else {
+                // Initialize with default data
+                dbData = {
+                    users: [{ id: 'admin', name: 'Parents', pass: 'parent', role: 'admin', balanceBB: 0, balanceUSD: 0 }],
+                    jobs: [],
+                    transactions: []
+                };
+                await saveDB();
+            }
+        } catch (error) {
+            console.error("Error loading data:", error);
+            showToast("Error loading data");
+        }
+    }
+    function generateId() { return Math.random().toString(36).substr(2, 9); }
+    function getDate() { return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }); }
+    function formatMoney(amt, curr) { return curr === 'USD' ? `$${parseFloat(amt).toFixed(2)}` : `${parseFloat(amt).toFixed(0)} BB`; }
+
+    // --- UI HELPERS ---
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = `toast`; t.innerHTML = `<i class="fas fa-info-circle"></i> ${msg}`;
+        document.getElementById('toast-container').appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    function switchTab(role, tab, btnEl) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`view-${role}-${tab}`).classList.add('active');
+        btnEl.classList.add('active');
+        if(role === 'kid') renderKidData();
+        if(role === 'admin') renderAdminData();
+    }
+
+    function logTransaction(userId, type, amt, currency, desc) {
+        dbData.transactions.unshift({ id: generateId(), userId, type, amt, currency, desc, date: getDate() });
+        saveDB();
+    }
+
+    // --- REAL-TIME LISTENERS ---
+    function setupRealtimeListeners() {
+        db.collection('config').doc('data').onSnapshot((doc) => {
+            if (doc.exists) {
+                dbData = doc.data();
+                if (currentUser) {
+                    if (currentUser.role === 'kid') renderKidData();
+                    else renderAdminData();
+                }
+            }
+        });
+    }
+
+    // --- AUTH ---
+    async function login() {
+        await loadDB();
+        
+        const u = document.getElementById('login-user').value.toLowerCase().trim();
+        const p = document.getElementById('login-pass').value;
+        const user = dbData.users.find(x => x.id === u && x.pass === p);
+
+        if (user) {
+            currentUser = user;
+            document.getElementById('view-login').classList.remove('active');
+            document.getElementById('btnLogout').style.display = 'flex';
+            
+            // Setup real-time listeners after login
+            setupRealtimeListeners();
+            
+            if (user.role === 'admin') {
+                document.getElementById('nav-admin').style.display = 'flex';
+                switchTab('admin', 'users', document.querySelector('#nav-admin .nav-btn'));
+            } else {
+                document.getElementById('nav-kid').style.display = 'flex';
+                switchTab('kid', 'home', document.querySelector('#nav-kid .nav-btn'));
+            }
+        } else { showToast("Invalid credentials"); }
+    }
+
+    function logout() { location.reload(); }
+
+    // --- KID LOGIC ---
+    function renderKidData() {
+        // Balances
+        document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB;
+        document.getElementById('kid-bal-usd').innerText = currentUser.balanceUSD.toFixed(2);
+        
+        // Active Shifts
+        const shiftContainer = document.getElementById('kid-active-shifts');
+        shiftContainer.innerHTML = '';
+        const activeJob = dbData.jobs.find(j => j.claimedBy === currentUser.id && j.status === 'active');
+        if(activeJob) {
+            shiftContainer.innerHTML = `
+                <div class="active-shift">
+                    <div>
+                        <div style="font-weight:600;"><span class="pulse-dot"></span>Punched In: ${activeJob.title}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Rate: ${formatMoney(activeJob.rate, activeJob.currency)} / hr</div>
+                    </div>
+                    <button class="btn-primary btn-red" style="width:auto; padding:8px 16px;" onclick="clockOut('${activeJob.id}')">Clock Out</button>
+                </div>`;
+        }
+
+        // Ledger
+        const txList = document.getElementById('kid-transactions');
+        txList.innerHTML = '';
+        const myTxs = dbData.transactions.filter(t => t.userId === currentUser.id).slice(0, 15);
+        if(myTxs.length === 0) txList.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No recent activity.</p>';
+        myTxs.forEach(tx => {
+            const isPos = tx.type === 'credit';
+            txList.innerHTML += `
+                <div class="list-item">
+                    <div class="list-col">
+                        <div class="item-title">${tx.desc}</div>
+                        <div class="item-sub">${tx.date}</div>
+                    </div>
+                    <div class="item-amt" style="color: ${isPos ? 'var(--usd-green)' : 'var(--text-main)'}">
+                        ${isPos ? '+' : '-'}${formatMoney(tx.amt, tx.currency)}
+                    </div>
+                </div>`;
+        });
+
+        // Jobs Board
+        const jList = document.getElementById('kid-jobs-list');
+        jList.innerHTML = '';
+        const openJobs = dbData.jobs.filter(j => j.status === 'open');
+        if(openJobs.length === 0) jList.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No contracts available.</p>';
+        
+        openJobs.forEach(job => {
+            const isHourly = job.type === 'hourly';
+            const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
+            jList.innerHTML += `
+                <div class="list-item">
+                    <div class="list-col">
+                        <div class="item-title">${job.title} ${isHourly ? '<i class="fas fa-clock" style="color:var(--accent-blue);font-size:0.8em;margin-left:5px;"></i>' : ''}</div>
+                        <div class="item-sub">${isHourly ? 'Hourly Rate' : 'Fixed Reward'}: ${rateTxt}</div>
+                    </div>
+                    <button class="btn-primary ${isHourly ? '' : 'btn-secondary'}" style="width:auto; padding:8px 16px;" onclick="claimJob('${job.id}')">
+                        ${isHourly ? 'Clock In' : 'Claim'}
+                    </button>
+                </div>`;
+        });
+
+        // Transfer View
+        const sel = document.getElementById('transfer-to');
+        sel.innerHTML = '<option value="">Select Recipient...</option>';
+        dbData.users.filter(u => u.role === 'kid' && u.id !== currentUser.id).forEach(u => {
+            sel.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+        });
+    }
+
+    function claimJob(id) {
+        const job = dbData.jobs.find(j => j.id === id);
+        job.claimedBy = currentUser.id;
+        
+        if(job.type === 'hourly') {
+            const hasActive = dbData.jobs.some(j => j.claimedBy === currentUser.id && j.status === 'active');
+            if(hasActive) return showToast("You are already clocked into a job!");
+            job.status = 'active';
+            job.startTime = Date.now();
+            showToast(`Clocked into: ${job.title}`);
+        } else {
+            job.status = 'pending';
+            showToast(`Contract Claimed: ${job.title}`);
+        }
+        saveDB();
+        renderKidData();
+    }
+
+    function clockOut(id) {
+        const job = dbData.jobs.find(j => j.id === id);
+        job.status = 'pending';
+        job.endTime = Date.now();
+        saveDB();
+        showToast("Shift ended. Sent for review.");
+        renderKidData();
+    }
+
+    function processTransfer() {
+        const toId = document.getElementById('transfer-to').value;
+        const curr = document.getElementById('transfer-currency').value;
+        const amt = parseFloat(document.getElementById('transfer-amount').value);
+        const note = document.getElementById('transfer-note').value || 'Transfer';
+        const recipient = dbData.users.find(u => u.id === toId);
+
+        if (!toId) return showToast("Select a recipient");
+        if (isNaN(amt) || amt <= 0) return showToast("Enter a valid amount");
+        
+        const balKey = curr === 'USD' ? 'balanceUSD' : 'balanceBB';
+        if (currentUser[balKey] < amt) return showToast("Insufficient funds");
+
+        currentUser[balKey] -= amt;
+        recipient[balKey] += amt;
+        
+        logTransaction(currentUser.id, 'debit', amt, curr, `Sent to ${recipient.name}: ${note}`);
+        logTransaction(recipient.id, 'credit', amt, curr, `From ${currentUser.name}: ${note}`);
+        
+        document.getElementById('transfer-amount').value = '';
+        showToast(`Sent ${formatMoney(amt, curr)} to ${recipient.name}`);
+        renderKidData();
+    }
+
+    // --- ADMIN LOGIC ---
+    function renderAdminData() {
+        // Users View
+        const uList = document.getElementById('admin-user-list');
+        uList.innerHTML = '';
+        dbData.users.filter(u => u.role === 'kid').forEach(u => {
+            uList.innerHTML += `
+                <div class="list-item" style="flex-direction:column; gap:12px; align-items:stretch;">
+                    <div style="font-weight:600; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">${u.name}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="item-amt" style="color:var(--gold)">${u.balanceBB} BB</div>
+                        <div>
+                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="manualAdjust('${u.id}', 'BB', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
+                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="manualAdjust('${u.id}', 'BB', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="item-amt" style="color:var(--usd-green)">$${u.balanceUSD.toFixed(2)}</div>
+                        <div>
+                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="manualAdjust('${u.id}', 'USD', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
+                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="manualAdjust('${u.id}', 'USD', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        // Approvals View
+        const aList = document.getElementById('admin-approval-list');
+        aList.innerHTML = '';
+        const pending = dbData.jobs.filter(j => j.status === 'pending');
+        if(pending.length === 0) aList.innerHTML = '<p style="color:var(--text-muted);">No pending reviews.</p>';
+
+        pending.forEach(j => {
+            const worker = dbData.users.find(u => u.id === j.claimedBy);
+            let suggestedPayout = j.rate;
+            let timeStr = "Fixed Job";
+            
+            if(j.type === 'hourly') {
+                const hours = (j.endTime - j.startTime) / (1000 * 60 * 60);
+                suggestedPayout = hours * j.rate;
+                const mins = Math.round(hours * 60);
+                timeStr = `${Math.floor(mins/60)}h ${mins%60}m logged`;
+            }
+
+            suggestedPayout = j.currency === 'USD' ? suggestedPayout.toFixed(2) : Math.round(suggestedPayout);
+
+            aList.innerHTML += `
+                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div class="list-col">
+                            <div class="item-title">${j.title} (${worker.name})</div>
+                            <div class="item-sub">${timeStr} • Rate: ${formatMoney(j.rate, j.currency)}</div>
+                        </div>
+                    </div>
+                    <div class="row-inputs" style="margin:0; align-items:center;">
+                        <input type="number" id="payout-${j.id}" value="${suggestedPayout}" style="margin:0;">
+                        <span style="font-weight:bold; color: ${j.currency === 'USD' ? 'var(--usd-green)' : 'var(--gold)'}">${j.currency}</span>
+                        <button class="btn-primary" style="width:auto; padding:12px 20px; margin-left:10px;" onclick="approveJob('${j.id}')">Approve</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function createKid() {
+        const name = document.getElementById('new-kid-name').value.trim();
+        const id = document.getElementById('new-kid-user').value.toLowerCase().trim();
+        const pass = document.getElementById('new-kid-pass').value;
+
+        if(!name || !id || !pass) return showToast("Fill all fields");
+        if(dbData.users.find(u => u.id === id)) return showToast("Username exists");
+
+        dbData.users.push({ id, name, pass, role: 'kid', balanceBB: 0, balanceUSD: 0 });
+        saveDB();
+        
+        document.getElementById('new-kid-name').value = '';
+        document.getElementById('new-kid-user').value = '';
+        document.getElementById('new-kid-pass').value = '';
+        showToast("Account created"); renderAdminData();
+    }
+
+    function manualAdjust(userId, curr, dir) {
+        const amtStr = prompt(`Enter ${curr} amount to ${dir > 0 ? 'ADD' : 'DEDUCT'}:`);
+        if(!amtStr) return;
+        const amt = parseFloat(amtStr);
+        if(isNaN(amt) || amt <= 0) return showToast("Invalid amount");
+
+        const user = dbData.users.find(u => u.id === userId);
+        const reason = prompt("Enter memo for ledger:") || "Manual Adjustment";
+
+        const balKey = curr === 'USD' ? 'balanceUSD' : 'balanceBB';
+        if(dir < 0 && user[balKey] < amt) return showToast("Insufficient funds");
+
+        user[balKey] += (amt * dir);
+        logTransaction(userId, dir > 0 ? 'credit' : 'debit', amt, curr, reason);
+        saveDB();
+        renderAdminData();
+    }
+
+    function createJob() {
+        const title = document.getElementById('new-job-title').value.trim();
+        const type = document.getElementById('new-job-type').value;
+        const curr = document.getElementById('new-job-currency').value;
+        const rate = parseFloat(document.getElementById('new-job-reward').value);
+
+        if(!title || isNaN(rate) || rate <= 0) return showToast("Invalid job details");
+
+        dbData.jobs.push({ id: generateId(), title, type, currency: curr, rate, status: 'open', claimedBy: null });
+        saveDB();
+        
+        document.getElementById('new-job-title').value = '';
+        document.getElementById('new-job-reward').value = '';
+        showToast("Contract added to floor");
+    }
+
+    function approveJob(jobId) {
+        const job = dbData.jobs.find(j => j.id === jobId);
+        const user = dbData.users.find(u => u.id === job.claimedBy);
+        const finalAmt = parseFloat(document.getElementById(`payout-${jobId}`).value);
+        
+        if(isNaN(finalAmt) || finalAmt <= 0) return showToast("Invalid payout amount");
+
+        const balKey = job.currency === 'USD' ? 'balanceUSD' : 'balanceBB';
+        user[balKey] += finalAmt;
+        
+        job.status = 'completed';
+        logTransaction(user.id, 'credit', finalAmt, job.currency, `Contract: ${job.title}`);
+        saveDB();
+        showToast(`Paid ${user.name} ${formatMoney(finalAmt, job.currency)}`);
+        renderAdminData();
+    }
+</script>
+</body>
+</html>
