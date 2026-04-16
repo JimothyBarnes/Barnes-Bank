@@ -189,6 +189,14 @@
         <div id="kid-jobs-list"></div>
     </div>
 
+    <div id="view-kid-store" class="view">
+        <div class="section-title">Store</div>
+        <div id="kid-store-items"></div>
+        
+        <div class="section-title" style="margin-top:40px;">My Purchases</div>
+        <div id="kid-purchases"></div>
+    </div>
+
     <div id="view-kid-send" class="view">
         <div class="section-title">Transfer Funds</div>
         <select id="transfer-to"></select>
@@ -240,15 +248,27 @@
         <div id="admin-approval-list"></div>
     </div>
 
+    <div id="view-admin-store" class="view">
+        <div class="section-title">Store Management</div>
+        <button class="btn-primary btn-green" onclick="openCreateItemModal()" style="width:100%; margin-bottom:20px;">
+            <i class="fas fa-plus"></i> Add New Item
+        </button>
+        
+        <div class="section-title">Store Items</div>
+        <div id="admin-store-items"></div>
+    </div>
+
     <nav class="bottom-nav" id="nav-kid" style="display:none;">
         <button class="nav-btn active" onclick="switchTab('kid', 'home', this)"><i class="fas fa-wallet"></i>Home</button>
         <button class="nav-btn" onclick="switchTab('kid', 'jobs', this)"><i class="fas fa-stopwatch"></i>Jobs</button>
+        <button class="nav-btn" onclick="switchTab('kid', 'store', this)"><i class="fas fa-store"></i>Store</button>
         <button class="nav-btn" onclick="switchTab('kid', 'send', this)"><i class="fas fa-exchange-alt"></i>Transfer</button>
     </nav>
 
     <nav class="bottom-nav" id="nav-admin" style="display:none;">
         <button class="nav-btn active" onclick="switchTab('admin', 'users', this)"><i class="fas fa-users"></i>Accounts</button>
         <button class="nav-btn" onclick="switchTab('admin', 'jobs', this)"><i class="fas fa-clipboard-check"></i>Contracts</button>
+        <button class="nav-btn" onclick="switchTab('admin', 'store', this)"><i class="fas fa-store"></i>Store</button>
     </nav>
 </div>
 
@@ -296,6 +316,51 @@
     </div>
 </div>
 
+<!-- Create Store Item Modal -->
+<div id="create-item-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
+        <h2 style="margin:0 0 20px; color:var(--text-main);">Add Store Item</h2>
+        <input type="text" id="new-item-name" placeholder="Item Name">
+        <input type="text" id="new-item-description" placeholder="Description">
+        <div class="row-inputs">
+            <input type="number" id="new-item-price" placeholder="Price" style="flex: 1;">
+            <select id="new-item-currency" style="flex: 1;">
+                <option value="BB">Barnes Bucks</option>
+                <option value="USD">Dollars (USD)</option>
+            </select>
+        </div>
+        <div class="row-inputs">
+            <select id="new-item-type" style="flex: 1;">
+                <option value="persistent">Persistent</option>
+                <option value="onetime">One-time</option>
+            </select>
+            <select id="new-item-category" style="flex: 1;">
+                <option value="privilege">Privilege</option>
+                <option value="treat">Treat</option>
+                <option value="toy">Toy</option>
+                <option value="experience">Experience</option>
+            </select>
+        </div>
+        <input type="number" id="new-item-stock" placeholder="Stock (leave blank for unlimited)">
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeCreateItemModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="createStoreItem()" style="flex:1;">Add Item</button>
+        </div>
+    </div>
+</div>
+
+<!-- Purchase Confirmation Modal -->
+<div id="purchase-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
+        <h2 style="margin:0 0 20px; color:var(--text-main);">Confirm Purchase</h2>
+        <div id="purchase-details"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closePurchaseModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="confirmPurchase()" style="flex:1;">Buy Now</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // --- FIREBASE CONFIGURATION ---
     const firebaseConfig = {
@@ -317,7 +382,9 @@
         users: [],
         jobs: [],
         transactions: [],
-        timeSessions: [] // {id, userId, type: 'general', startTime, endTime, status: 'active'|'pending'|'approved', duration, rateBB, rateUSD, approvedCurrency, earnings, description}
+        timeSessions: [], // {id, userId, type: 'general', startTime, endTime, status: 'active'|'pending'|'approved', duration, rateBB, rateUSD, approvedCurrency, earnings, description}
+        storeItems: [], // {id, name, description, price, currency, type: 'persistent'|'onetime', category, stock, isActive, createdBy, createdAt}
+        purchases: [] // {id, userId, itemId, itemName, price, currency, type, status: 'active'|'used'|'expired', quantity, purchasedAt, usedAt, notes}
     };
 
     // Firebase functions
@@ -346,7 +413,9 @@
                     users: [{ id: 'admin', name: 'Parents', pass: 'parent', role: 'admin', balanceBB: 0, balanceUSD: 0 }],
                     jobs: [],
                     transactions: [],
-                    timeSessions: []
+                    timeSessions: [],
+                    storeItems: [],
+                    purchases: []
                 };
                 await saveDB();
             }
@@ -357,7 +426,13 @@
     }
     function generateId() { return Math.random().toString(36).substr(2, 9); }
     function getDate() { return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }); }
-    function formatMoney(amt, curr) { return curr === 'USD' ? `$${parseFloat(amt).toFixed(2)}` : `${parseFloat(amt).toFixed(2)} BB`; }
+    function formatMoney(amt, curr) { 
+        if (isNaN(amt) || amt === null || amt === undefined) {
+            console.log("formatMoney received invalid amount:", amt);
+            return curr === 'USD' ? '$0.00' : '0.00 BB';
+        }
+        return curr === 'USD' ? `$${parseFloat(amt).toFixed(2)}` : `${parseFloat(amt).toFixed(2)} BB`; 
+    }
 
     // --- UI HELPERS ---
     function showToast(msg) {
@@ -377,7 +452,9 @@
     }
 
     function logTransaction(userId, type, amt, currency, desc) {
-        dbData.transactions.unshift({ id: generateId(), userId, type, amt, currency, desc, date: getDate() });
+        // Store positive amount, use type to determine display
+        const transactionAmount = Math.abs(amt);
+        dbData.transactions.unshift({ id: generateId(), userId, type, amt: transactionAmount, currency, desc, date: getDate() });
         saveDB();
     }
 
@@ -740,6 +817,215 @@
         }
     }
 
+    // --- STORE FUNCTIONS ---
+    let currentPurchaseItem = null;
+
+    function openCreateItemModal() {
+        document.getElementById('create-item-modal').style.display = 'flex';
+    }
+
+    function closeCreateItemModal() {
+        document.getElementById('create-item-modal').style.display = 'none';
+        // Clear form
+        document.getElementById('new-item-name').value = '';
+        document.getElementById('new-item-description').value = '';
+        document.getElementById('new-item-price').value = '';
+        document.getElementById('new-item-currency').value = 'BB';
+        document.getElementById('new-item-type').value = 'persistent';
+        document.getElementById('new-item-category').value = 'privilege';
+        document.getElementById('new-item-stock').value = '';
+    }
+
+    function createStoreItem() {
+        const name = document.getElementById('new-item-name').value.trim();
+        const description = document.getElementById('new-item-description').value.trim();
+        const price = parseFloat(document.getElementById('new-item-price').value);
+        const currency = document.getElementById('new-item-currency').value;
+        const type = document.getElementById('new-item-type').value;
+        const category = document.getElementById('new-item-category').value;
+        const stockInput = document.getElementById('new-item-stock').value.trim();
+        const stock = stockInput === '' ? null : parseInt(stockInput);
+
+        // Validation
+        if (!name || !description || isNaN(price) || price <= 0) {
+            showToast("Please fill in all required fields with valid values");
+            return;
+        }
+
+        // Create new store item
+        const newItem = {
+            id: generateId(),
+            name,
+            description,
+            price,
+            currency,
+            type,
+            category,
+            stock,
+            isActive: true,
+            createdBy: currentUser.id,
+            createdAt: Date.now()
+        };
+
+        // Ensure storeItems array exists
+        if (!dbData.storeItems) dbData.storeItems = [];
+
+        dbData.storeItems.push(newItem);
+        saveDB();
+        closeCreateItemModal();
+        renderAdminData();
+        showToast("Store item added successfully!");
+    }
+
+    function toggleStoreItem(itemId) {
+        const item = dbData.storeItems.find(i => i.id === itemId);
+        if (item) {
+            item.isActive = !item.isActive;
+            saveDB();
+            renderAdminData();
+            showToast(`Item ${item.isActive ? 'activated' : 'deactivated'}`);
+        }
+    }
+
+    function deleteStoreItem(itemId) {
+        const item = dbData.storeItems.find(i => i.id === itemId);
+        if (item && confirm(`Delete "${item.name}"? This cannot be undone.`)) {
+            const index = dbData.storeItems.findIndex(i => i.id === itemId);
+            dbData.storeItems.splice(index, 1);
+            saveDB();
+            renderAdminData();
+            showToast("Item deleted");
+        }
+    }
+
+    function openPurchaseModal(itemId) {
+        const item = dbData.storeItems.find(i => i.id === itemId);
+        if (!item || !item.isActive) return;
+
+        // Check if item is in stock
+        if (item.stock !== null && item.stock <= 0) {
+            showToast("This item is out of stock!");
+            return;
+        }
+
+        // Check if user can afford it
+        const userBalance = item.currency === 'BB' ? currentUser.balanceBB : currentUser.balanceUSD;
+        if (userBalance < item.price) {
+            showToast("Insufficient balance!");
+            return;
+        }
+
+        currentPurchaseItem = item;
+        
+        // Show purchase details
+        const details = document.getElementById('purchase-details');
+        details.innerHTML = `
+            <div style="margin-bottom:15px;">
+                <div style="font-weight:600; margin-bottom:5px;">${item.name}</div>
+                <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:10px;">${item.description}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Price:</span>
+                    <span style="font-weight:600; color:${item.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)'}">${formatMoney(item.price, item.currency)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                    <span>Your Balance:</span>
+                    <span style="color:var(--text-muted);">${formatMoney(userBalance, item.currency)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                    <span>Remaining:</span>
+                    <span style="font-weight:600;">${formatMoney(userBalance - item.price, item.currency)}</span>
+                </div>
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">
+                Type: ${item.type === 'persistent' ? 'Persistent item' : 'One-time item'}
+            </div>
+        `;
+
+        document.getElementById('purchase-modal').style.display = 'flex';
+    }
+
+    function closePurchaseModal() {
+        document.getElementById('purchase-modal').style.display = 'none';
+        currentPurchaseItem = null;
+    }
+
+    function confirmPurchase() {
+        console.log("=== PURCHASE DEBUG START ===");
+        console.log("confirmPurchase called, currentPurchaseItem:", currentPurchaseItem);
+        console.log("currentUser before purchase:", currentUser);
+        console.log("currentUser balanceBB before:", currentUser.balanceBB);
+        console.log("currentUser balanceUSD before:", currentUser.balanceUSD);
+        
+        if (!currentPurchaseItem) return;
+
+        // Double-check stock availability
+        if (currentPurchaseItem.stock !== null && currentPurchaseItem.stock <= 0) {
+            showToast("This item is out of stock!");
+            closePurchaseModal();
+            return;
+        }
+
+        // Deduct from user balance
+        const balKey = currentPurchaseItem.currency === 'BB' ? 'balanceBB' : 'balanceUSD';
+        const deductionAmount = currentPurchaseItem.price;
+        console.log("About to deduct:", deductionAmount, "from", balKey);
+        
+        // Update currentUser object
+        currentUser[balKey] -= deductionAmount;
+        console.log("currentUser after deduction:", currentUser);
+        console.log("currentUser balanceBB after:", currentUser.balanceBB);
+        console.log("currentUser balanceUSD after:", currentUser.balanceUSD);
+        
+        // Also update the user in dbData.users array to ensure persistence
+        const userIndex = dbData.users.findIndex(u => u.id === currentUser.id);
+        if (userIndex !== -1) {
+            dbData.users[userIndex][balKey] = currentUser[balKey];
+            console.log("Updated user in dbData.users array:", dbData.users[userIndex]);
+        }
+
+        // Create purchase record
+        const purchase = {
+            id: generateId(),
+            userId: currentUser.id,
+            itemId: currentPurchaseItem.id,
+            itemName: currentPurchaseItem.name,
+            price: currentPurchaseItem.price,
+            currency: currentPurchaseItem.currency,
+            type: currentPurchaseItem.type,
+            status: 'active',
+            quantity: 1,
+            purchasedAt: Date.now(),
+            usedAt: null,
+            notes: ''
+        };
+
+        // Ensure purchases array exists
+        if (!dbData.purchases) dbData.purchases = [];
+
+        dbData.purchases.push(purchase);
+
+        // Update stock if limited
+        if (currentPurchaseItem.stock !== null) {
+            currentPurchaseItem.stock--;
+        }
+
+        // Log transaction
+        console.log("About to log transaction...");
+        logTransaction(currentUser.id, 'debit', currentPurchaseItem.price, currentPurchaseItem.currency, `Purchased: ${currentPurchaseItem.name}`);
+        console.log("Transaction logged");
+
+        console.log("About to saveDB...");
+        saveDB();
+        console.log("saveDB completed");
+        
+        console.log("About to close modal and render...");
+        closePurchaseModal();
+        renderKidData();
+        console.log("=== PURCHASE DEBUG END ===");
+        showToast(`Purchased ${currentPurchaseItem.name}!`);
+    }
+
+    
     // --- KID LOGIC ---
     function renderKidData() {
         // Balances
@@ -989,28 +1275,171 @@
             const worker = dbData.users.find(u => u.id === j.claimedBy);
             let suggestedPayout = j.rate;
             let timeStr = "Fixed Job";
+        });
+
+        // Store Management View
+        const sList = document.getElementById('admin-store-items');
+        sList.innerHTML = '';
+        if (!dbData.storeItems) dbData.storeItems = [];
+        
+        if(dbData.storeItems.length === 0) sList.innerHTML = '<p style="color:var(--text-muted);">No store items yet. Click "Add New Item" to get started!</p>';
+        
+        dbData.storeItems.forEach(item => {
+            const statusColor = item.isActive ? 'var(--text-main)' : 'var(--text-muted)';
+            const stockText = item.stock === null ? 'Unlimited' : `${item.stock} left`;
+            const typeIcon = item.type === 'persistent' ? 'fas fa-infinity' : 'fas fa-check-circle';
             
-            if(j.type === 'hourly') {
-                const hours = (j.endTime - j.startTime) / (1000 * 60 * 60);
-                suggestedPayout = hours * j.rate;
-                const mins = Math.round(hours * 60);
-                timeStr = `${Math.floor(mins/60)}h ${mins%60}m logged`;
-            }
-
-            suggestedPayout = j.currency === 'USD' ? suggestedPayout.toFixed(2) : Math.round(suggestedPayout);
-
-            aList.innerHTML += `
+            sList.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
-                    <div style="display:flex; justify-content:space-between;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div class="list-col">
-                            <div class="item-title">${j.title} (${worker.name})</div>
-                            <div class="item-sub">${timeStr} • Rate: ${formatMoney(j.rate, j.currency)}</div>
+                            <div class="item-title" style="color:${statusColor};">
+                                ${item.name} ${item.isActive ? '' : '(Inactive)'}
+                            </div>
+                            <div class="item-sub">${item.description}</div>
+                            <div class="item-sub" style="display:flex; gap:10px; align-items:center;">
+                                <span style="color:${item.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)'}">${formatMoney(item.price, item.currency)}</span>
+                                <span style="color:var(--text-muted);">|</span>
+                                <span style="color:var(--text-muted);"><i class="${typeIcon}" style="font-size:0.8em;"></i> ${item.type}</span>
+                                <span style="color:var(--text-muted);">|</span>
+                                <span style="color:var(--text-muted);">${stockText}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn-icon" onclick="toggleStoreItem('${item.id}')" style="background:var(--surface-light);"><i class="fas fa-${item.isActive ? 'eye' : 'eye-slash'}"></i></button>
+                            <button class="btn-icon btn-red" onclick="deleteStoreItem('${item.id}')"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
-                    <div class="row-inputs" style="margin:0; align-items:center;">
-                        <input type="number" id="payout-${j.id}" value="${suggestedPayout}" style="margin:0;">
-                        <span style="font-weight:bold; color: ${j.currency === 'USD' ? 'var(--usd-green)' : 'var(--gold)'}">${j.currency}</span>
-                        <button class="btn-primary" style="width:auto; padding:12px 20px; margin-left:10px;" onclick="approveJob('${j.id}')">Approve</button>
+                </div>`;
+        });
+    }
+
+    function renderKidData() {
+        // Balances
+        document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB.toFixed(2);
+        document.getElementById('kid-bal-usd').innerText = currentUser.balanceUSD.toFixed(2);
+        
+        // Active Shifts - Jobs and General Time
+        const shiftContainer = document.getElementById('kid-active-shifts');
+        shiftContainer.innerHTML = '';
+        
+        // Check for active job
+        const activeJob = dbData.jobs.find(j => j.claimedBy === currentUser.id && j.status === 'active');
+        if(activeJob) {
+            shiftContainer.innerHTML += `
+                <div class="active-shift">
+                    <div>
+                        <div style="font-weight:600;"><span class="pulse-dot"></span>Punched In: ${activeJob.title}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Rate: ${formatMoney(activeJob.rate, activeJob.currency)} / hr</div>
+                    </div>
+                    <button class="btn-primary btn-red" style="width:auto; padding:8px 16px;" onclick="clockOut('${activeJob.id}')">Clock Out</button>
+                </div>`;
+        }
+        
+        // Check for active general time session
+        if (!dbData.timeSessions) dbData.timeSessions = [];
+        const activeSession = dbData.timeSessions.find(s => s.userId === currentUser.id && s.status === 'active');
+        if(activeSession) {
+            const currentDuration = Math.round((Date.now() - activeSession.startTime) / (1000 * 60));
+            shiftContainer.innerHTML += `
+                <div class="active-shift">
+                    <div>
+                        <div style="font-weight:600;"><span class="pulse-dot"></span>General Work Session</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Current time: ${formatDuration(currentDuration)}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Rates: ${activeSession.rateBB} BB/hr | $${activeSession.rateUSD}/hr</div>
+                    </div>
+                    <button class="btn-primary btn-red" style="width:auto; padding:8px 16px;" onclick="clockOutGeneral()">Clock Out</button>
+                </div>`;
+        }
+
+        // Ledger
+        const txList = document.getElementById('kid-transactions');
+        txList.innerHTML = '';
+        if (!dbData.transactions) dbData.transactions = [];
+        console.log("All transactions:", dbData.transactions);
+        console.log("Current user:", currentUser.id);
+        
+        const myTxs = dbData.transactions.filter(t => t.userId === currentUser.id).slice(0, 5);
+        console.log("User transactions:", myTxs);
+        
+        if(myTxs.length === 0) txList.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No recent activity.</p>';
+        
+        myTxs.forEach(tx => {
+            // Handle invalid amounts more gracefully
+            let displayAmount = 0;
+            if (isNaN(tx.amt) || tx.amt === null || tx.amt === undefined) {
+                displayAmount = 0;
+            } else {
+                displayAmount = Math.abs(tx.amt);
+            }
+            
+            // Use transaction type to determine sign and color
+            const isCredit = tx.type === 'credit';
+            txList.innerHTML += `
+                <div class="list-item">
+                    <div class="list-col">
+                        <div class="item-title">${tx.desc}</div>
+                        <div class="item-sub">${tx.date}</div>
+                    </div>
+                    <div class="item-amt ${isCredit ? 'credit' : 'debit'}">
+                        ${isCredit ? '+' : '-'}${formatMoney(displayAmount, tx.currency)}
+                    </div>
+                </div>`;
+        });
+        
+        // Store Items
+        const storeContainer = document.getElementById('kid-store-items');
+        storeContainer.innerHTML = '';
+        if (!dbData.storeItems) dbData.storeItems = [];
+        
+        const activeItems = dbData.storeItems.filter(item => item.isActive && (item.stock === null || item.stock > 0));
+        if(activeItems.length === 0) storeContainer.innerHTML = '<p style="color:var(--text-muted);">No items available in the store.</p>';
+        
+        activeItems.forEach(item => {
+            const canAfford = (item.currency === 'BB' ? currentUser.balanceBB : currentUser.balanceUSD) >= item.price;
+            const typeIcon = item.type === 'persistent' ? 'fas fa-infinity' : 'fas fa-check-circle';
+            
+            storeContainer.innerHTML += `
+                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="list-col">
+                            <div class="item-title">${item.name}</div>
+                            <div class="item-sub">${item.description}</div>
+                            <div class="item-sub" style="display:flex; gap:10px; align-items:center;">
+                                <span style="color:${item.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)'}">${formatMoney(item.price, item.currency)}</span>
+                                <span style="color:var(--text-muted);">|</span>
+                                <span style="color:var(--text-muted);"><i class="${typeIcon}" style="font-size:0.8em;"></i> ${item.type}</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary ${canAfford ? '' : 'btn-secondary'}" onclick="openPurchaseModal('${item.id}')" ${canAfford ? '' : 'disabled'}>
+                            ${canAfford ? 'Buy' : 'Cannot Afford'}
+                        </button>
+                    </div>
+                </div>`;
+        });
+
+        // My Purchases
+        const purchasesContainer = document.getElementById('kid-purchases');
+        purchasesContainer.innerHTML = '';
+        if (!dbData.purchases) dbData.purchases = [];
+        
+        const myPurchases = dbData.purchases.filter(p => p.userId === currentUser.id && p.status === 'active');
+        if(myPurchases.length === 0) purchasesContainer.innerHTML = '<p style="color:var(--text-muted);">No purchases yet.</p>';
+        
+        myPurchases.forEach(purchase => {
+            const typeIcon = purchase.type === 'persistent' ? 'fas fa-infinity' : 'fas fa-check-circle';
+            purchasesContainer.innerHTML += `
+                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="list-col">
+                            <div class="item-title">${purchase.itemName}</div>
+                            <div class="item-sub" style="display:flex; gap:10px; align-items:center;">
+                                <span style="color:var(--text-muted);"><i class="${typeIcon}" style="font-size:0.8em;"></i> ${purchase.type}</span>
+                                <span style="color:var(--text-muted);">|</span>
+                                <span style="color:var(--text-muted);">Purchased ${getDate(purchase.purchasedAt)}</span>
+                            </div>
+                        </div>
+                        <div style="color:var(--text-muted); font-size:0.8rem;">${purchase.type === 'persistent' ? 'Persistent' : 'One-time'}</div>
                     </div>
                 </div>`;
         });
