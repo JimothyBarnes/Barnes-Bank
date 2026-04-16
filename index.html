@@ -443,11 +443,15 @@
     }
 
     function switchTab(role, tab, btnEl) {
+        console.log(`Switching to ${role} ${tab} tab`);
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`view-${role}-${tab}`).classList.add('active');
         btnEl.classList.add('active');
-        if(role === 'kid') renderKidData();
+        if(role === 'kid') {
+            console.log("Calling renderKidData for kid tab:", tab);
+            renderKidData();
+        }
         if(role === 'admin') renderAdminData();
     }
 
@@ -1107,10 +1111,26 @@
 
         // Transfer View
         const sel = document.getElementById('transfer-to');
+        console.log("Transfer dropdown element:", sel);
+        console.log("Transfer dropdown innerHTML before:", sel.innerHTML);
+        console.log("Populating transfer recipients...");
+        console.log("Current user:", currentUser);
+        console.log("All users:", dbData.users);
+        
+        if (!sel) {
+            console.log("ERROR: Transfer dropdown element not found!");
+            return;
+        }
+        
         sel.innerHTML = '<option value="">Select Recipient...</option>';
-        dbData.users.filter(u => u.role === 'kid' && u.id !== currentUser.id).forEach(u => {
+        const otherKids = dbData.users.filter(u => u.role === 'kid' && u.id !== currentUser.id);
+        console.log("Other kids:", otherKids);
+        otherKids.forEach(u => {
+            console.log("Adding recipient:", u.name, u.id);
             sel.innerHTML += `<option value="${u.id}">${u.name}</option>`;
         });
+        console.log("Transfer dropdown innerHTML after:", sel.innerHTML);
+        console.log("Transfer dropdown options count:", sel.options.length);
     }
 
     function claimJob(id) {
@@ -1155,6 +1175,17 @@
 
         currentUser[balKey] -= amt;
         recipient[balKey] += amt;
+        
+        // Also update both users in dbData.users array to ensure persistence
+        const senderIndex = dbData.users.findIndex(u => u.id === currentUser.id);
+        const recipientIndex = dbData.users.findIndex(u => u.id === recipient.id);
+        
+        if (senderIndex !== -1) {
+            dbData.users[senderIndex][balKey] = currentUser[balKey];
+        }
+        if (recipientIndex !== -1) {
+            dbData.users[recipientIndex][balKey] = recipient[balKey];
+        }
         
         logTransaction(currentUser.id, 'debit', amt, curr, `Sent to ${recipient.name}: ${note}`);
         logTransaction(recipient.id, 'credit', amt, curr, `From ${currentUser.name}: ${note}`);
@@ -1315,6 +1346,7 @@
     }
 
     function renderKidData() {
+        console.log("renderKidData called for:", currentUser.name);
         // Balances
         document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB.toFixed(2);
         document.getElementById('kid-bal-usd').innerText = currentUser.balanceUSD.toFixed(2);
@@ -1443,6 +1475,29 @@
                     </div>
                 </div>`;
         });
+
+        // Transfer View
+        const sel = document.getElementById('transfer-to');
+        console.log("Transfer dropdown element:", sel);
+        console.log("Transfer dropdown innerHTML before:", sel.innerHTML);
+        console.log("Populating transfer recipients...");
+        console.log("Current user:", currentUser);
+        console.log("All users:", dbData.users);
+        
+        if (!sel) {
+            console.log("ERROR: Transfer dropdown element not found!");
+            return;
+        }
+        
+        sel.innerHTML = '<option value="">Select Recipient...</option>';
+        const otherKids = dbData.users.filter(u => u.role === 'kid' && u.id !== currentUser.id);
+        console.log("Other kids:", otherKids);
+        otherKids.forEach(u => {
+            console.log("Adding recipient:", u.name, u.id);
+            sel.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+        });
+        console.log("Transfer dropdown innerHTML after:", sel.innerHTML);
+        console.log("Transfer dropdown options count:", sel.options.length);
     }
 
     function createKid() {
