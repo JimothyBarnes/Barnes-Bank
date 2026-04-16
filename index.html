@@ -225,6 +225,9 @@
         <input type="number" id="new-job-reward" placeholder="Reward / Hourly Rate">
         <button class="btn-primary" onclick="createJob()">Post to Floor</button>
 
+        <div class="section-title" style="margin-top:40px;">Posted Jobs Management</div>
+        <div id="admin-job-list"></div>
+
         <div class="section-title" style="margin-top:40px;">Pending Review & Approvals</div>
         <div id="admin-approval-list"></div>
     </div>
@@ -239,6 +242,29 @@
         <button class="nav-btn active" onclick="switchTab('admin', 'users', this)"><i class="fas fa-users"></i>Accounts</button>
         <button class="nav-btn" onclick="switchTab('admin', 'jobs', this)"><i class="fas fa-clipboard-check"></i>Contracts</button>
     </nav>
+</div>
+
+<!-- Edit Job Modal -->
+<div id="edit-job-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
+        <h2 style="margin:0 0 20px; color:var(--text-main);">Edit Job</h2>
+        <input type="text" id="edit-job-title" placeholder="Task Description">
+        <div class="row-inputs">
+            <select id="edit-job-type" style="flex: 1;">
+                <option value="fixed">Fixed Rate</option>
+                <option value="hourly">Hourly Punch Clock</option>
+            </select>
+            <select id="edit-job-currency" style="flex: 1;">
+                <option value="BB">Barnes Bucks</option>
+                <option value="USD">Dollars (USD)</option>
+            </select>
+        </div>
+        <input type="number" id="edit-job-reward" placeholder="Reward / Hourly Rate">
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeEditJobModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="saveEditJob()" style="flex:1;">Save Changes</button>
+        </div>
+    </div>
 </div>
 
 <!-- Edit Account Modal -->
@@ -466,6 +492,79 @@
         }
     }
 
+    // --- EDIT JOB MODAL ---
+    let currentEditingJob = null;
+
+    function openEditJobModal(jobId) {
+        currentEditingJob = dbData.jobs.find(j => j.id === jobId);
+        if (!currentEditingJob) return;
+
+        // Populate modal with current job data
+        document.getElementById('edit-job-title').value = currentEditingJob.title;
+        document.getElementById('edit-job-type').value = currentEditingJob.type;
+        document.getElementById('edit-job-currency').value = currentEditingJob.currency;
+        document.getElementById('edit-job-reward').value = currentEditingJob.rate;
+        
+        // Show modal
+        document.getElementById('edit-job-modal').style.display = 'flex';
+    }
+
+    function closeEditJobModal() {
+        document.getElementById('edit-job-modal').style.display = 'none';
+        currentEditingJob = null;
+    }
+
+    function saveEditJob() {
+        if (!currentEditingJob) return;
+
+        const title = document.getElementById('edit-job-title').value.trim();
+        const type = document.getElementById('edit-job-type').value;
+        const currency = document.getElementById('edit-job-currency').value;
+        const rate = parseFloat(document.getElementById('edit-job-reward').value);
+
+        // Validation
+        if (!title || isNaN(rate) || rate <= 0) {
+            showToast("Invalid job details");
+            return;
+        }
+
+        // Update job data
+        const jobIndex = dbData.jobs.findIndex(j => j.id === currentEditingJob.id);
+        if (jobIndex !== -1) {
+            dbData.jobs[jobIndex].title = title;
+            dbData.jobs[jobIndex].type = type;
+            dbData.jobs[jobIndex].currency = currency;
+            dbData.jobs[jobIndex].rate = rate;
+
+            saveDB();
+            closeEditJobModal();
+            renderAdminData();
+            showToast("Job updated successfully");
+        }
+    }
+
+    function deleteJob(jobId) {
+        const job = dbData.jobs.find(j => j.id === jobId);
+        if (!job) return;
+
+        // Don't allow deletion of jobs that are in progress or pending
+        if (job.status === 'active' || job.status === 'pending') {
+            showToast("Cannot delete job that is in progress or pending review");
+            return;
+        }
+
+        // Confirm deletion
+        if (confirm(`Are you sure you want to delete "${job.title}"?`)) {
+            const jobIndex = dbData.jobs.findIndex(j => j.id === jobId);
+            if (jobIndex !== -1) {
+                dbData.jobs.splice(jobIndex, 1);
+                saveDB();
+                renderAdminData();
+                showToast("Job deleted successfully");
+            }
+        }
+    }
+
     // --- KID LOGIC ---
     function renderKidData() {
         // Balances
@@ -610,6 +709,33 @@
                         <div>
                             <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="manualAdjust('${u.id}', 'USD', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
                             <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="manualAdjust('${u.id}', 'USD', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        // Job Management View
+        const jList = document.getElementById('admin-job-list');
+        jList.innerHTML = '';
+        const allJobs = dbData.jobs.filter(j => j.status === 'open' || j.status === 'active');
+        if(allJobs.length === 0) jList.innerHTML = '<p style="color:var(--text-muted);">No posted jobs.</p>';
+        
+        allJobs.forEach(job => {
+            const isHourly = job.type === 'hourly';
+            const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
+            const statusColor = job.status === 'active' ? 'var(--accent-blue)' : 'var(--text-muted)';
+            const statusText = job.status === 'active' ? 'In Progress' : 'Open';
+            
+            jList.innerHTML += `
+                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="list-col">
+                            <div class="item-title">${job.title} ${isHourly ? '<i class="fas fa-clock" style="color:var(--accent-blue);font-size:0.8em;margin-left:5px;"></i>' : ''}</div>
+                            <div class="item-sub">${isHourly ? 'Hourly Rate' : 'Fixed Reward'}: ${rateTxt} <span style="color:${statusColor};">(${statusText})</span></div>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn-icon" onclick="openEditJobModal('${job.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon btn-red" onclick="deleteJob('${job.id}')"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                 </div>`;
