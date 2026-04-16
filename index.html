@@ -180,6 +180,11 @@
     </div>
 
     <div id="view-kid-jobs" class="view">
+        <div class="section-title">General Time Tracking</div>
+        <button class="btn-primary btn-green" onclick="clockInGeneral()" style="width:100%; margin-bottom:20px;">
+            <i class="fas fa-clock"></i> Clock In - General Work
+        </button>
+        
         <div class="section-title">Open Contracts</div>
         <div id="kid-jobs-list"></div>
     </div>
@@ -228,6 +233,9 @@
         <div class="section-title" style="margin-top:40px;">Posted Jobs Management</div>
         <div id="admin-job-list"></div>
 
+        <div class="section-title" style="margin-top:40px;">Time Session Approvals</div>
+        <div id="admin-time-approval-list"></div>
+
         <div class="section-title" style="margin-top:40px;">Pending Review & Approvals</div>
         <div id="admin-approval-list"></div>
     </div>
@@ -274,6 +282,13 @@
         <input type="text" id="edit-name" placeholder="Display Name">
         <input type="text" id="edit-user" placeholder="Username" autocapitalize="none">
         <input type="password" id="edit-pass" placeholder="New Password (leave blank to keep current)">
+        <div style="margin-top:10px;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">Default Hourly Rates</div>
+            <div class="row-inputs">
+                <input type="number" id="edit-rate-bb" placeholder="BB Rate" style="flex:1;">
+                <input type="number" id="edit-rate-usd" placeholder="USD Rate" style="flex:1;">
+            </div>
+        </div>
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-primary btn-secondary" onclick="closeEditModal()" style="flex:1;">Cancel</button>
             <button class="btn-primary" onclick="saveEditAccount()" style="flex:1;">Save Changes</button>
@@ -301,7 +316,8 @@
     let dbData = {
         users: [],
         jobs: [],
-        transactions: []
+        transactions: [],
+        timeSessions: [] // {id, userId, type: 'general', startTime, endTime, status: 'active'|'pending'|'approved', duration, rateBB, rateUSD, approvedCurrency, earnings, description}
     };
 
     // Firebase functions
@@ -329,7 +345,8 @@
                 dbData = {
                     users: [{ id: 'admin', name: 'Parents', pass: 'parent', role: 'admin', balanceBB: 0, balanceUSD: 0 }],
                     jobs: [],
-                    transactions: []
+                    transactions: [],
+                    timeSessions: []
                 };
                 await saveDB();
             }
@@ -416,6 +433,8 @@
         document.getElementById('edit-name').value = currentEditingUser.name;
         document.getElementById('edit-user').value = currentEditingUser.id;
         document.getElementById('edit-pass').value = '';
+        document.getElementById('edit-rate-bb').value = currentEditingUser.defaultHourlyRateBB || 5;
+        document.getElementById('edit-rate-usd').value = currentEditingUser.defaultHourlyRateUSD || 3;
         
         // Show modal
         document.getElementById('edit-modal').style.display = 'flex';
@@ -432,10 +451,16 @@
         const newName = document.getElementById('edit-name').value.trim();
         const newUsername = document.getElementById('edit-user').value.toLowerCase().trim();
         const newPassword = document.getElementById('edit-pass').value;
+        const newRateBB = parseFloat(document.getElementById('edit-rate-bb').value);
+        const newRateUSD = parseFloat(document.getElementById('edit-rate-usd').value);
 
         // Validation
         if (!newName || !newUsername) {
             showToast("Name and username are required");
+            return;
+        }
+        if (isNaN(newRateBB) || newRateBB <= 0 || isNaN(newRateUSD) || newRateUSD <= 0) {
+            showToast("Valid hourly rates are required");
             return;
         }
 
@@ -453,6 +478,8 @@
         if (userIndex !== -1) {
             dbData.users[userIndex].name = newName;
             dbData.users[userIndex].id = newUsername;
+            dbData.users[userIndex].defaultHourlyRateBB = newRateBB;
+            dbData.users[userIndex].defaultHourlyRateUSD = newRateUSD;
             
             // Update password only if provided
             if (newPassword) {
@@ -489,6 +516,36 @@
             closeEditModal();
             renderAdminData();
             showToast("Account updated successfully");
+        }
+    }
+
+    function editDefaultRate(userId, currency) {
+        const user = dbData.users.find(u => u.id === userId);
+        if (!user) return;
+
+        const currentRate = currency === 'BB' ? (user.defaultHourlyRateBB || 5) : (user.defaultHourlyRateUSD || 3);
+        const newRate = prompt(`Enter new ${currency} hourly rate:`, currentRate);
+        
+        if (newRate === null) return; // User cancelled
+        
+        const rate = parseFloat(newRate);
+        if (isNaN(rate) || rate <= 0) {
+            showToast("Invalid rate amount");
+            return;
+        }
+
+        // Update user's default rate
+        const userIndex = dbData.users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+            if (currency === 'BB') {
+                dbData.users[userIndex].defaultHourlyRateBB = rate;
+            } else {
+                dbData.users[userIndex].defaultHourlyRateUSD = rate;
+            }
+            
+            saveDB();
+            renderAdminData();
+            showToast(`${currency} rate updated to ${rate}/hr`);
         }
     }
 
@@ -565,24 +622,160 @@
         }
     }
 
+    // --- TIME TRACKING FUNCTIONS ---
+    function clockInGeneral() {
+        console.log("clockInGeneral called, currentUser:", currentUser);
+        console.log("dbData:", dbData);
+        
+        // Ensure timeSessions array exists
+        if (!dbData.timeSessions) {
+            dbData.timeSessions = [];
+            saveDB();
+        }
+        
+        console.log("timeSessions:", dbData.timeSessions);
+        
+        // Check if user already has an active session
+        const activeSession = dbData.timeSessions.find(s => s.userId === currentUser.id && s.status === 'active');
+        if (activeSession) {
+            showToast("You are already clocked in!");
+            return;
+        }
+
+        // Create new time session
+        const user = dbData.users.find(u => u.id === currentUser.id);
+        
+        // Ensure user has default rates (for backward compatibility)
+        if (!user.defaultHourlyRateBB) user.defaultHourlyRateBB = 5;
+        if (!user.defaultHourlyRateUSD) user.defaultHourlyRateUSD = 3;
+        
+        const newSession = {
+            id: generateId(),
+            userId: currentUser.id,
+            type: 'general',
+            startTime: Date.now(),
+            endTime: null,
+            status: 'active',
+            duration: null,
+            rateBB: user.defaultHourlyRateBB,
+            rateUSD: user.defaultHourlyRateUSD,
+            approvedCurrency: null,
+            earnings: null,
+            description: 'General work session'
+        };
+
+        dbData.timeSessions.push(newSession);
+        saveDB();
+        renderKidData();
+        showToast("Clocked in successfully!");
+    }
+
+    function clockOutGeneral() {
+        const activeSession = dbData.timeSessions.find(s => s.userId === currentUser.id && s.status === 'active');
+        if (!activeSession) {
+            showToast("You are not clocked in!");
+            return;
+        }
+
+        // Calculate duration in minutes
+        const duration = Math.round((Date.now() - activeSession.startTime) / (1000 * 60));
+        activeSession.endTime = Date.now();
+        activeSession.duration = duration;
+        activeSession.status = 'pending';
+
+        saveDB();
+        renderKidData();
+        showToast("Clocked out! Session sent for approval.");
+    }
+
+    function formatDuration(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours > 0) {
+            return `${hours}h ${mins}m`;
+        }
+        return `${mins}m`;
+    }
+
+    function approveTimeSession(sessionId, currency) {
+        const session = dbData.timeSessions.find(s => s.id === sessionId);
+        const user = dbData.users.find(u => u.id === session.userId);
+        
+        if (!session || !user) return;
+
+        // Calculate earnings based on selected currency
+        const earnings = session.duration / 60 * (currency === 'BB' ? session.rateBB : session.rateUSD);
+        
+        // Update user balance
+        const balKey = currency === 'BB' ? 'balanceBB' : 'balanceUSD';
+        user[balKey] += earnings;
+        
+        // Update session
+        session.status = 'approved';
+        session.approvedCurrency = currency;
+        session.earnings = earnings;
+        
+        // Log transaction
+        logTransaction(user.id, 'credit', earnings, currency, `General work session: ${formatDuration(session.duration)}`);
+        
+        saveDB();
+        renderAdminData();
+        showToast(`Approved ${user.name}'s session: ${formatMoney(earnings, currency)}`);
+    }
+
+    function rejectTimeSession(sessionId) {
+        const session = dbData.timeSessions.find(s => s.id === sessionId);
+        const user = dbData.users.find(u => u.id === session.userId);
+        
+        if (!session || !user) return;
+
+        if (confirm(`Reject ${user.name}'s ${formatDuration(session.duration)} work session?`)) {
+            // Remove session
+            const sessionIndex = dbData.timeSessions.findIndex(s => s.id === sessionId);
+            dbData.timeSessions.splice(sessionIndex, 1);
+            
+            saveDB();
+            renderAdminData();
+            showToast(`Rejected ${user.name}'s work session`);
+        }
+    }
+
     // --- KID LOGIC ---
     function renderKidData() {
         // Balances
         document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB;
         document.getElementById('kid-bal-usd').innerText = currentUser.balanceUSD.toFixed(2);
         
-        // Active Shifts
+        // Active Shifts - Jobs and General Time
         const shiftContainer = document.getElementById('kid-active-shifts');
         shiftContainer.innerHTML = '';
+        
+        // Check for active job
         const activeJob = dbData.jobs.find(j => j.claimedBy === currentUser.id && j.status === 'active');
         if(activeJob) {
-            shiftContainer.innerHTML = `
+            shiftContainer.innerHTML += `
                 <div class="active-shift">
                     <div>
                         <div style="font-weight:600;"><span class="pulse-dot"></span>Punched In: ${activeJob.title}</div>
                         <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Rate: ${formatMoney(activeJob.rate, activeJob.currency)} / hr</div>
                     </div>
                     <button class="btn-primary btn-red" style="width:auto; padding:8px 16px;" onclick="clockOut('${activeJob.id}')">Clock Out</button>
+                </div>`;
+        }
+        
+        // Check for active general time session
+        if (!dbData.timeSessions) dbData.timeSessions = [];
+        const activeSession = dbData.timeSessions.find(s => s.userId === currentUser.id && s.status === 'active');
+        if(activeSession) {
+            const currentDuration = Math.round((Date.now() - activeSession.startTime) / (1000 * 60));
+            shiftContainer.innerHTML += `
+                <div class="active-shift">
+                    <div>
+                        <div style="font-weight:600;"><span class="pulse-dot"></span>General Work Session</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Current time: ${formatDuration(currentDuration)}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Rates: ${activeSession.rateBB} BB/hr | $${activeSession.rateUSD}/hr</div>
+                    </div>
+                    <button class="btn-primary btn-red" style="width:auto; padding:8px 16px;" onclick="clockOutGeneral()">Clock Out</button>
                 </div>`;
         }
 
@@ -711,6 +904,17 @@
                             <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="manualAdjust('${u.id}', 'USD', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
                         </div>
                     </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Default Rates</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="item-sub" style="color:var(--gold);">${u.defaultHourlyRateBB || 5} BB/hr</div>
+                        <button class="btn-icon" onclick="editDefaultRate('${u.id}', 'BB')" style="background:var(--surface-light); width:24px;height:24px;"><i class="fas fa-edit" style="font-size:10px;"></i></button>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="item-sub" style="color:var(--usd-green);">$${u.defaultHourlyRateUSD || 3}/hr</div>
+                        <button class="btn-icon" onclick="editDefaultRate('${u.id}', 'USD')" style="background:var(--surface-light); width:24px;height:24px;"><i class="fas fa-edit" style="font-size:10px;"></i></button>
+                    </div>
                 </div>`;
         });
 
@@ -737,6 +941,40 @@
                             <button class="btn-icon" onclick="openEditJobModal('${job.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
                             <button class="btn-icon btn-red" onclick="deleteJob('${job.id}')"><i class="fas fa-trash"></i></button>
                         </div>
+                    </div>
+                </div>`;
+        });
+
+        // Time Session Approvals View
+        const tList = document.getElementById('admin-time-approval-list');
+        tList.innerHTML = '';
+        if (!dbData.timeSessions) dbData.timeSessions = [];
+        const pendingSessions = dbData.timeSessions.filter(s => s.status === 'pending');
+        if(pendingSessions.length === 0) tList.innerHTML = '<p style="color:var(--text-muted);">No pending time sessions.</p>';
+
+        pendingSessions.forEach(session => {
+            const worker = dbData.users.find(u => u.id === session.userId);
+            const earningsBB = (session.duration / 60 * session.rateBB).toFixed(2);
+            const earningsUSD = (session.duration / 60 * session.rateUSD).toFixed(2);
+            
+            tList.innerHTML += `
+                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div class="list-col">
+                            <div class="item-title">${worker.name} - General Work</div>
+                            <div class="item-sub">${formatDuration(session.duration)} worked</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem;">
+                        <div>
+                            <span style="color:var(--gold);">${earningsBB} BB</span> | 
+                            <span style="color:var(--usd-green);">$${earningsUSD}</span>
+                        </div>
+                    </div>
+                    <div class="row-inputs" style="margin:0; align-items:center;">
+                        <button class="btn-primary" style="background:var(--gold); color:var(--bg-dark); width:auto; padding:12px 20px;" onclick="approveTimeSession('${session.id}', 'BB')">Approve as BB</button>
+                        <button class="btn-primary" style="background:var(--usd-green); color:black; width:auto; padding:12px 20px;" onclick="approveTimeSession('${session.id}', 'USD')">Approve as USD</button>
+                        <button class="btn-primary btn-red" style="width:auto; padding:12px 20px;" onclick="rejectTimeSession('${session.id}')">Reject</button>
                     </div>
                 </div>`;
         });
@@ -788,7 +1026,7 @@
         // Use username as display name (capitalize first letter)
         const name = id.charAt(0).toUpperCase() + id.slice(1);
         
-        dbData.users.push({ id, name, pass, role: 'kid', balanceBB: 0, balanceUSD: 0 });
+        dbData.users.push({ id, name, pass, role: 'kid', balanceBB: 0, balanceUSD: 0, defaultHourlyRateBB: 5, defaultHourlyRateUSD: 3 });
         saveDB();
         
         document.getElementById('new-kid-user').value = '';
