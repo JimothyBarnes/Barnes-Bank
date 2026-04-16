@@ -241,6 +241,20 @@
     </nav>
 </div>
 
+<!-- Edit Account Modal -->
+<div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
+        <h2 style="margin:0 0 20px; color:var(--text-main);">Edit Account</h2>
+        <input type="text" id="edit-name" placeholder="Display Name">
+        <input type="text" id="edit-user" placeholder="Username" autocapitalize="none">
+        <input type="password" id="edit-pass" placeholder="New Password (leave blank to keep current)">
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeEditModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="saveEditAccount()" style="flex:1;">Save Changes</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // --- FIREBASE CONFIGURATION ---
     const firebaseConfig = {
@@ -364,6 +378,93 @@
     }
 
     function logout() { location.reload(); }
+
+    // --- EDIT ACCOUNT MODAL ---
+    let currentEditingUser = null;
+
+    function openEditModal(userId) {
+        currentEditingUser = dbData.users.find(u => u.id === userId);
+        if (!currentEditingUser) return;
+
+        // Populate modal with current user data
+        document.getElementById('edit-name').value = currentEditingUser.name;
+        document.getElementById('edit-user').value = currentEditingUser.id;
+        document.getElementById('edit-pass').value = '';
+        
+        // Show modal
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').style.display = 'none';
+        currentEditingUser = null;
+    }
+
+    function saveEditAccount() {
+        if (!currentEditingUser) return;
+
+        const newName = document.getElementById('edit-name').value.trim();
+        const newUsername = document.getElementById('edit-user').value.toLowerCase().trim();
+        const newPassword = document.getElementById('edit-pass').value;
+
+        // Validation
+        if (!newName || !newUsername) {
+            showToast("Name and username are required");
+            return;
+        }
+
+        // Check if username is being changed and if new username already exists
+        if (newUsername !== currentEditingUser.id) {
+            const existingUser = dbData.users.find(u => u.id === newUsername);
+            if (existingUser) {
+                showToast("Username already exists");
+                return;
+            }
+        }
+
+        // Update user data
+        const userIndex = dbData.users.findIndex(u => u.id === currentEditingUser.id);
+        if (userIndex !== -1) {
+            dbData.users[userIndex].name = newName;
+            dbData.users[userIndex].id = newUsername;
+            
+            // Update password only if provided
+            if (newPassword) {
+                dbData.users[userIndex].pass = newPassword;
+            }
+
+            // Update all references to old username in transactions and jobs
+            if (newUsername !== currentEditingUser.id) {
+                // Update transactions
+                dbData.transactions.forEach(tx => {
+                    if (tx.userId === currentEditingUser.id) {
+                        tx.userId = newUsername;
+                    }
+                    if (tx.desc && tx.desc.includes(currentEditingUser.name)) {
+                        tx.desc = tx.desc.replace(currentEditingUser.name, newName);
+                    }
+                });
+
+                // Update jobs
+                dbData.jobs.forEach(job => {
+                    if (job.claimedBy === currentEditingUser.id) {
+                        job.claimedBy = newUsername;
+                    }
+                });
+
+                // Update currentUser if it's the edited user
+                if (currentUser && currentUser.id === currentEditingUser.id) {
+                    currentUser.id = newUsername;
+                    currentUser.name = newName;
+                }
+            }
+
+            saveDB();
+            closeEditModal();
+            renderAdminData();
+            showToast("Account updated successfully");
+        }
+    }
 
     // --- KID LOGIC ---
     function renderKidData() {
@@ -493,7 +594,10 @@
         dbData.users.filter(u => u.role === 'kid').forEach(u => {
             uList.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:12px; align-items:stretch;">
-                    <div style="font-weight:600; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">${u.name}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
+                        <div style="font-weight:600;">${u.name}</div>
+                        <button class="btn-icon" onclick="openEditModal('${u.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
+                    </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div class="item-amt" style="color:var(--gold)">${u.balanceBB} BB</div>
                         <div>
