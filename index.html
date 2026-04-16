@@ -357,7 +357,7 @@
     }
     function generateId() { return Math.random().toString(36).substr(2, 9); }
     function getDate() { return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }); }
-    function formatMoney(amt, curr) { return curr === 'USD' ? `$${parseFloat(amt).toFixed(2)}` : `${parseFloat(amt).toFixed(0)} BB`; }
+    function formatMoney(amt, curr) { return curr === 'USD' ? `$${parseFloat(amt).toFixed(2)}` : `${parseFloat(amt).toFixed(2)} BB`; }
 
     // --- UI HELPERS ---
     function showToast(msg) {
@@ -704,7 +704,7 @@
         if (!session || !user) return;
 
         // Calculate earnings based on selected currency
-        const earnings = session.duration / 60 * (currency === 'BB' ? session.rateBB : session.rateUSD);
+        const earnings = (session.duration / 60) * (currency === 'BB' ? session.rateBB : session.rateUSD);
         
         // Update user balance
         const balKey = currency === 'BB' ? 'balanceBB' : 'balanceUSD';
@@ -743,7 +743,7 @@
     // --- KID LOGIC ---
     function renderKidData() {
         // Balances
-        document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB;
+        document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB.toFixed(2);
         document.getElementById('kid-bal-usd').innerText = currentUser.balanceUSD.toFixed(2);
         
         // Active Shifts - Jobs and General Time
@@ -891,7 +891,7 @@
                         <button class="btn-icon" onclick="openEditModal('${u.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="item-amt" style="color:var(--gold)">${u.balanceBB} BB</div>
+                        <div class="item-amt" style="color:var(--gold)">${formatMoney(u.balanceBB, 'BB')}</div>
                         <div>
                             <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="manualAdjust('${u.id}', 'BB', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
                             <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="manualAdjust('${u.id}', 'BB', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
@@ -954,8 +954,8 @@
 
         pendingSessions.forEach(session => {
             const worker = dbData.users.find(u => u.id === session.userId);
-            const earningsBB = (session.duration / 60 * session.rateBB).toFixed(2);
-            const earningsUSD = (session.duration / 60 * session.rateUSD).toFixed(2);
+            const earningsBB = ((session.duration / 60) * session.rateBB).toFixed(2);
+            const earningsUSD = ((session.duration / 60) * session.rateUSD).toFixed(2);
             
             tList.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
