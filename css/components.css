@@ -1,0 +1,226 @@
+/* --- Buttons --- */
+.btn-icon {
+    background: var(--surface); 
+    border: none; 
+    color: var(--text-main);
+    width: 36px; 
+    height: 36px; 
+    border-radius: 50%; 
+    cursor: pointer;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: 0.2s;
+}
+
+.btn-icon:active { 
+    transform: scale(0.9); 
+}
+
+.btn-primary {
+    background: var(--text-main); 
+    color: var(--bg-dark); 
+    border: none; 
+    padding: 16px;
+    border-radius: var(--radius); 
+    font-weight: 600; 
+    font-size: 1rem; 
+    width: 100%;
+    cursor: pointer; 
+    transition: 0.2s;
+}
+
+.btn-primary:active { 
+    transform: scale(0.98); 
+}
+
+.btn-secondary { 
+    background: var(--surface-light); 
+    color: var(--text-main); 
+}
+
+.btn-green { 
+    background: var(--usd-green); 
+    color: black; 
+}
+
+.btn-red { 
+    background: rgba(255, 69, 58, 0.2); 
+    color: var(--accent-red); 
+}
+
+/* --- Balance Cards --- */
+.balances-wrapper { 
+    display: flex; 
+    gap: 12px; 
+    margin-bottom: 24px; 
+}
+
+.card-balance {
+    flex: 1; 
+    padding: 20px; 
+    border-radius: 20px; 
+    text-align: center;
+    background: linear-gradient(145deg, #1f1f1f, #121212);
+}
+
+.card-bb { 
+    border: 1px solid rgba(212, 175, 55, 0.2); 
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.05); 
+}
+
+.card-usd { 
+    border: 1px solid rgba(48, 209, 88, 0.2); 
+    box-shadow: 0 10px 30px rgba(48, 209, 88, 0.05); 
+}
+
+.card-label { 
+    color: var(--text-muted); 
+    font-size: 0.75rem; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+}
+
+.card-amt { 
+    font-size: 2rem; 
+    font-weight: 800; 
+    margin: 8px 0; 
+    color: var(--text-main); 
+}
+
+.card-curr { 
+    font-size: 1rem; 
+    vertical-align: super; 
+}
+
+.curr-bb { 
+    color: var(--gold); 
+}
+
+.curr-usd { 
+    color: var(--usd-green); 
+}
+
+/* --- List Items --- */
+.list-item {
+    background: var(--surface); 
+    border-radius: var(--radius); 
+    padding: 16px;
+    margin-bottom: 12px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+}
+
+.list-col { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 4px; 
+}
+
+.item-title { 
+    font-weight: 600; 
+    font-size: 0.95rem; 
+}
+
+.item-sub { 
+    color: var(--text-muted); 
+    font-size: 0.8rem; 
+}
+
+.item-amt { 
+    font-weight: 600; 
+    font-size: 1rem; 
+}
+
+/* --- Active Shift Banner --- */
+.active-shift {
+    background: rgba(10, 132, 255, 0.1); 
+    border: 1px solid var(--accent-blue);
+    border-radius: var(--radius); 
+    padding: 16px; 
+    margin-bottom: 20px;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+}
+
+.pulse-dot {
+    width: 10px; 
+    height: 10px; 
+    background: var(--accent-blue);
+    border-radius: 50%; 
+    display: inline-block; 
+    margin-right: 8px;
+    animation: pulse 1.5s infinite;
+}
+
+/* --- Navigation --- */
+.bottom-nav {
+    position: fixed; 
+    bottom: 0; 
+    width: 100%; 
+    max-width: 430px;
+    background: rgba(28, 28, 30, 0.9); 
+    backdrop-filter: blur(20px);
+    display: flex; 
+    justify-content: space-around; 
+    padding: 12px 0 24px;
+    border-top: 1px solid rgba(255,255,255,0.05); 
+    z-index: 100;
+}
+
+.nav-btn {
+    background: none; 
+    border: none; 
+    color: var(--text-muted);
+    font-size: 0.75rem; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 4px;
+    cursor: pointer; 
+    transition: 0.2s; 
+    width: 60px;
+}
+
+.nav-btn i { 
+    font-size: 1.2rem; 
+}
+
+.nav-btn.active { 
+    color: var(--text-main); 
+}
+
+/* --- Toast Notifications --- */
+#toast-container { 
+    position: fixed; 
+    top: 20px; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    z-index: 1000; 
+    width: 90%; 
+    max-width: 400px; 
+}
+
+.toast {
+    background: var(--surface-light); 
+    color: white; 
+    padding: 16px; 
+    border-radius: 12px;
+    margin-bottom: 10px; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+    animation: slideDown 0.3s ease forwards;
+}
+
+/* --- Transaction Types --- */
+.credit { 
+    color: var(--usd-green); 
+}
+
+.debit { 
+    color: var(--accent-red); 
+}

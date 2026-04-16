@@ -1,0 +1,102 @@
+/* --- Responsive Design --- */
+
+/* Desktop Styles */
+@media (min-width: 768px) {
+    .app-container {
+        max-width: 100%;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px;
+        margin: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    
+    .bottom-nav {
+        border-radius: 0 0 20px 20px;
+    }
+    
+    .header {
+        border-radius: 20px 20px 0 0;
+    }
+}
+
+/* Large Desktop */
+@media (min-width: 1200px) {
+    .balances-wrapper {
+        max-width: 600px;
+        margin: 0 auto 24px;
+    }
+    
+    .list-item {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* Small Mobile */
+@media (max-width: 320px) {
+    .header {
+        padding: 20px 15px 8px;
+    }
+    
+    .view {
+        padding: 15px;
+    }
+    
+    .card-amt {
+        font-size: 1.5rem;
+    }
+    
+    .nav-btn {
+        font-size: 0.7rem;
+        width: 50px;
+    }
+    
+    .nav-btn i {
+        font-size: 1rem;
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .btn-primary:hover,
+    .btn-icon:hover,
+    .nav-btn:hover {
+        transform: none;
+    }
+    
+    .btn-primary:active,
+    .btn-icon:active,
+    .nav-btn:active {
+        transform: scale(0.95);
+    }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .logo {
+        font-weight: 900;
+    }
+    
+    .card-amt {
+        font-weight: 900;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    /* Already optimized for dark mode */
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .pulse-dot {
+        animation: none;
+    }
+}

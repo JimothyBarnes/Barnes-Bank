@@ -1,0 +1,125 @@
+/* --- Core Variables & Reset --- */
+:root {
+    --bg-dark: #000000;
+    --surface: #1c1c1e;
+    --surface-light: #2c2c2e;
+    --gold: #d4af37;
+    --usd-green: #30d158;
+    --text-main: #ffffff;
+    --text-muted: #8e8e93;
+    --accent-red: #ff453a;
+    --accent-blue: #0a84ff;
+    --radius: 16px;
+}
+
+* { 
+    box-sizing: border-box; 
+    font-family: 'Inter', sans-serif; 
+    -webkit-tap-highlight-color: transparent; 
+}
+
+body {
+    background-color: var(--bg-dark); 
+    color: var(--text-main);
+    margin: 0; 
+    display: flex; 
+    justify-content: center; 
+    min-height: 100vh;
+}
+
+.app-container {
+    width: 100%; 
+    max-width: 430px; 
+    background: var(--bg-dark);
+    display: flex; 
+    flex-direction: column; 
+    position: relative; 
+    overflow-x: hidden;
+}
+
+/* --- Header & UI --- */
+.header {
+    padding: 30px 20px 10px; 
+    display: flex; 
+    justify-content: space-between;
+    align-items: center; 
+    position: sticky; 
+    top: 0; 
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px); 
+    z-index: 10;
+}
+
+.logo { 
+    font-weight: 800; 
+    font-size: 1.2rem; 
+    color: var(--gold); 
+    letter-spacing: 0.5px; 
+}
+
+/* --- Forms & Inputs --- */
+input, select {
+    width: 100%; 
+    padding: 16px; 
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.05); 
+    border-radius: var(--radius);
+    color: white; 
+    font-size: 1rem; 
+    margin-bottom: 12px; 
+    outline: none;
+}
+
+input:focus, select:focus { 
+    border-color: var(--gold); 
+}
+
+.row-inputs { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 12px; 
+}
+
+.row-inputs > * { 
+    margin-bottom: 0; 
+}
+
+/* --- Layout & Views --- */
+.view { 
+    display: none; 
+    padding: 20px; 
+    animation: fadeIn 0.3s ease; 
+    padding-bottom: 90px; 
+}
+
+.view.active { 
+    display: block; 
+}
+
+.section-title { 
+    font-size: 1.1rem; 
+    font-weight: 600; 
+    margin: 24px 0 16px; 
+    color: var(--text-main); 
+}
+
+/* --- Utility Classes --- */
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+@keyframes slideDown { 
+    from { opacity: 0; transform: translateY(-20px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+@keyframes pulse { 
+    0% { box-shadow: 0 0 0 0 rgba(10,132,255,0.7); } 
+    70% { box-shadow: 0 0 0 10px rgba(10,132,255,0); } 
+    100% { box-shadow: 0 0 0 0 rgba(10,132,255,0); } 
+}
+
+::-webkit-scrollbar { 
+    display: none; 
+}
