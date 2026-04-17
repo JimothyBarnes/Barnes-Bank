@@ -272,6 +272,15 @@
         grid-template-columns: 1fr;
     }
 
+    .approval-actions {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .approval-actions > * {
+        width: 100% !important;
+    }
+
     .admin-posted-job-topline {
         flex-direction: column;
         align-items: flex-start;

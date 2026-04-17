@@ -464,6 +464,10 @@
     gap: 8px;
 }
 
+.approval-actions {
+    flex-wrap: wrap;
+}
+
 /* --- Kid Job Cards --- */
 .job-card {
     flex-direction: column;
