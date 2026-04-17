@@ -376,12 +376,20 @@
         saveDB();
     }
 
+    function syncCurrentUserFromDB() {
+        if (!currentUser || !dbData.users) return;
+
+        const latestUser = dbData.users.find(u => u.id === currentUser.id);
+        if (latestUser) currentUser = latestUser;
+    }
+
     // --- REAL-TIME LISTENERS ---
     function setupRealtimeListeners() {
         db.collection('config').doc('data').onSnapshot((doc) => {
             if (doc.exists) {
                 dbData = doc.data();
                 if (currentUser) {
+                    syncCurrentUserFromDB();
                     if (currentUser.role === 'kid') renderKidData();
                     else renderAdminData();
                 }
