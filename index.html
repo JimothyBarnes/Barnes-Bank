@@ -1205,6 +1205,9 @@
     }
 
     function renderKidData() {
+        syncCurrentUserFromDB();
+        if (!currentUser) return;
+
         console.log("renderKidData called for:", currentUser.name);
         // Balances
         document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB.toFixed(2);
