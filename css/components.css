@@ -18,7 +18,7 @@
 }
 
 .btn-primary {
-    background: var(--text-main); 
+    background: linear-gradient(135deg, var(--text-main) 0%, #f0f0f0 100%); 
     color: var(--bg-dark); 
     border: none; 
     padding: 16px;
@@ -27,11 +27,13 @@
     font-size: 1rem; 
     width: 100%;
     cursor: pointer; 
-    transition: 0.2s;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255,255,255,0.1);
 }
 
 .btn-primary:active { 
     transform: scale(0.98); 
+    box-shadow: 0 2px 8px rgba(255,255,255,0.1);
 }
 
 .btn-secondary { 
@@ -62,16 +64,33 @@
     border-radius: 20px; 
     text-align: center;
     background: linear-gradient(145deg, #1f1f1f, #121212);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-balance::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
 }
 
 .card-bb { 
-    border: 1px solid rgba(212, 175, 55, 0.2); 
-    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.05); 
+    border: 1px solid rgba(212, 175, 55, 0.3); 
+    box-shadow: 0 15px 35px rgba(212, 175, 55, 0.1), 
+                0 5px 15px rgba(212, 175, 55, 0.05);
+    background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
 }
 
 .card-usd { 
-    border: 1px solid rgba(48, 209, 88, 0.2); 
-    box-shadow: 0 10px 30px rgba(48, 209, 88, 0.05); 
+    border: 1px solid rgba(48, 209, 88, 0.3); 
+    box-shadow: 0 15px 35px rgba(48, 209, 88, 0.1), 
+                0 5px 15px rgba(48, 209, 88, 0.05);
+    background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
 }
 
 .card-label { 
@@ -103,13 +122,33 @@
 
 /* --- List Items --- */
 .list-item {
-    background: var(--surface); 
+    background: linear-gradient(135deg, var(--surface) 0%, #1a1a1a 100%); 
     border-radius: var(--radius); 
     padding: 16px;
     margin-bottom: 12px; 
     display: flex; 
     justify-content: space-between; 
     align-items: center;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.list-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+    transition: left 0.5s ease;
+}
+
+.list-item:active::before {
+    left: 100%;
 }
 
 .list-col { 
@@ -135,14 +174,16 @@
 
 /* --- Active Shift Banner --- */
 .active-shift {
-    background: rgba(10, 132, 255, 0.1); 
-    border: 1px solid var(--accent-blue);
+    background: linear-gradient(135deg, rgba(10, 132, 255, 0.15) 0%, rgba(10, 132, 255, 0.05) 100%); 
+    border: 1px solid rgba(10, 132, 255, 0.3);
     border-radius: var(--radius); 
     padding: 16px; 
     margin-bottom: 20px;
     display: flex; 
     justify-content: space-between; 
     align-items: center;
+    box-shadow: 0 8px 25px rgba(10, 132, 255, 0.1);
+    transition: all 0.3s ease;
 }
 
 .pulse-dot {
@@ -161,13 +202,14 @@
     bottom: 0; 
     width: 100%; 
     max-width: 430px;
-    background: rgba(28, 28, 30, 0.9); 
+    background: linear-gradient(135deg, rgba(28, 28, 30, 0.95) 0%, rgba(12, 12, 14, 0.95) 100%); 
     backdrop-filter: blur(20px);
     display: flex; 
     justify-content: space-around; 
     padding: 12px 0 24px;
-    border-top: 1px solid rgba(255,255,255,0.05); 
+    border-top: 1px solid rgba(255,255,255,0.1); 
     z-index: 100;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
 }
 
 .nav-btn {
@@ -180,16 +222,37 @@
     align-items: center; 
     gap: 4px;
     cursor: pointer; 
-    transition: 0.2s; 
+    transition: all 0.3s ease; 
     width: 60px;
+    padding: 8px;
+    border-radius: 12px;
+    position: relative;
 }
 
 .nav-btn i { 
     font-size: 1.2rem; 
+    transition: all 0.3s ease;
 }
 
 .nav-btn.active { 
     color: var(--text-main); 
+    background: rgba(255,255,255,0.05);
+}
+
+.nav-btn:active {
+    transform: scale(0.95);
+}
+
+.nav-btn.active::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: var(--text-main);
+    border-radius: 50%;
 }
 
 /* --- Toast Notifications --- */
