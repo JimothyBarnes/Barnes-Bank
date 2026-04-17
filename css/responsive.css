@@ -9,6 +9,24 @@
         margin: 20px auto;
         box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         background: linear-gradient(135deg, var(--bg-dark) 0%, #0a0a0a 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .app-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+        animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
     }
     
     .bottom-nav {
@@ -57,6 +75,19 @@
         margin: 30px 0 20px;
         font-weight: 700;
         letter-spacing: -0.5px;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--gold), var(--usd-green));
+        border-radius: 1px;
     }
     
     .list-item {
@@ -68,9 +99,10 @@
     }
     
     .list-item:hover {
-        background: var(--surface-light);
-        transform: translateX(5px);
-        border-color: rgba(255,255,255,0.1);
+        background: linear-gradient(135deg, var(--surface-light) 0%, rgba(44,44,46,0.8) 100%);
+        transform: translateX(8px) translateY(-2px);
+        border-color: rgba(255,255,255,0.15);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     }
     
     .btn-primary {
@@ -80,8 +112,9 @@
     }
     
     .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(255,255,255,0.1);
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 15px 35px rgba(255,255,255,0.15);
+        background: linear-gradient(135deg, var(--text-main) 0%, #f8f8f8 100%);
     }
     
     .nav-btn {
@@ -153,15 +186,19 @@
         max-width: 900px;
         margin: 40px auto;
         box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+        background: linear-gradient(135deg, var(--bg-dark) 0%, #050505 100%);
     }
     
     .header {
         padding: 50px 40px 30px;
+        background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(20,20,22,0.95) 100%);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     
     .view {
         padding: 40px 40px 120px;
         max-width: 800px;
+        background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(10,10,12,0.3) 100%);
     }
     
     .balances-wrapper {
@@ -172,15 +209,31 @@
     
     .card-balance {
         padding: 30px;
+        background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+        border: 1px solid rgba(255,255,255,0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .card-balance::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
     }
     
     .card-amt {
         font-size: 2.5rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     
     .section-title {
         font-size: 1.6rem;
         margin: 40px 0 25px;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     
     .list-item {
@@ -188,21 +241,32 @@
         margin-left: auto;
         margin-right: auto;
         padding: 25px;
+        background: linear-gradient(135deg, var(--surface) 0%, rgba(30,30,32,0.8) 100%);
+        border: 1px solid rgba(255,255,255,0.08);
     }
     
     .logo {
         font-size: 2rem;
         letter-spacing: -1px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     
     .btn-primary {
         padding: 18px;
         font-size: 1.1rem;
+        background: linear-gradient(135deg, var(--text-main) 0%, #f0f0f0 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-4px) scale(1.03);
+        box-shadow: 0 20px 40px rgba(255,255,255,0.2);
     }
     
     .nav-btn {
         padding: 18px;
         font-size: 0.9rem;
+        border-radius: 14px;
     }
     
     .nav-btn i {
