@@ -20,7 +20,13 @@
     <div id="toast-container"></div>
 
     <header class="header">
-        <div class="logo">BARNES<span style="color:var(--text-main)">BANK</span></div>
+        <div class="header-brand">
+            <div class="logo">BARNES<span style="color:var(--text-main)">BANK</span></div>
+            <div class="header-user" id="header-user" style="display:none;">
+                <span class="header-user-label" id="header-user-label">Ready to earn?</span>
+                <span class="header-user-name" id="header-user-name"></span>
+            </div>
+        </div>
         <button class="btn-icon" id="btnLogout" style="display:none;" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
     </header>
 
@@ -386,6 +392,23 @@
         setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
     }
 
+    function updateHeaderUser() {
+        const userWrap = document.getElementById('header-user');
+        const userLabel = document.getElementById('header-user-label');
+        const userName = document.getElementById('header-user-name');
+        if (!userWrap || !userName || !userLabel) return;
+
+        if (currentUser && currentUser.role === 'kid') {
+            userLabel.innerText = 'Ready to earn?';
+            userName.innerText = currentUser.name;
+            userWrap.style.display = 'flex';
+        } else {
+            userWrap.style.display = 'none';
+            userLabel.innerText = '';
+            userName.innerText = '';
+        }
+    }
+
     function switchTab(role, tab, btnEl) {
         console.log(`Switching to ${role} ${tab} tab`);
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -393,10 +416,14 @@
         document.getElementById(`view-${role}-${tab}`).classList.add('active');
         btnEl.classList.add('active');
         if(role === 'kid') {
+            updateHeaderUser();
             console.log("Calling renderKidData for kid tab:", tab);
             renderKidData();
         }
-        if(role === 'admin') renderAdminData();
+        if(role === 'admin') {
+            updateHeaderUser();
+            renderAdminData();
+        }
     }
 
     function logTransaction(userId, type, amt, currency, desc) {
@@ -439,6 +466,7 @@
             currentUser = user;
             document.getElementById('view-login').classList.remove('active');
             document.getElementById('btnLogout').style.display = 'flex';
+            updateHeaderUser();
             
             // Setup real-time listeners after login
             setupRealtimeListeners();
@@ -1300,6 +1328,7 @@
     function renderKidData() {
         syncCurrentUserFromDB();
         if (!currentUser) return;
+        updateHeaderUser();
 
         console.log("renderKidData called for:", currentUser.name);
         // Balances

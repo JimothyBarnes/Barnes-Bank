@@ -50,11 +50,40 @@ body {
     z-index: 10;
 }
 
+.header-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .logo { 
     font-weight: 800; 
     font-size: 1.2rem; 
     color: var(--gold); 
     letter-spacing: 0.5px; 
+}
+
+.header-user {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.header-user-label {
+    display: block;
+    color: var(--gold);
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.header-user-name {
+    display: block;
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1.1;
 }
 
 /* --- Forms & Inputs --- */
