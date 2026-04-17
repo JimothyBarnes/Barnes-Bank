@@ -102,40 +102,27 @@
                     <div class="admin-overview-value" id="admin-open-job-count">0</div>
                 </div>
                 <div class="admin-overview-card">
-                    <div class="admin-overview-label">Time Sessions</div>
-                    <div class="admin-overview-value" id="admin-time-session-count">0</div>
-                </div>
-                <div class="admin-overview-card">
-                    <div class="admin-overview-label">Pending Reviews</div>
-                    <div class="admin-overview-value" id="admin-pending-review-count">0</div>
+                    <div class="admin-overview-label">Needs Approval</div>
+                    <div class="admin-overview-value" id="admin-approval-queue-count">0</div>
                 </div>
             </div>
 
-            <section class="admin-panel admin-panel-compose">
-                <div class="admin-panel-header">
-                    <div>
-                        <div class="admin-panel-kicker">Create</div>
-                        <div class="admin-panel-title">Issue Contract or Shift</div>
-                    </div>
-                </div>
-                <div class="admin-panel-body">
-                    <input type="text" id="new-job-title" placeholder="Task Description (e.g., Shop Cleanup)">
-                    <div class="row-inputs">
-                        <select id="new-job-type">
-                            <option value="fixed">Fixed Rate</option>
-                            <option value="hourly">Hourly Punch Clock</option>
-                        </select>
-                        <select id="new-job-currency">
-                            <option value="BB">Barnes Bucks</option>
-                            <option value="USD">Dollars (USD)</option>
-                        </select>
-                    </div>
-                    <input type="number" id="new-job-reward" placeholder="Reward / Hourly Rate">
-                    <button class="btn-primary" onclick="createJob()">Post to Floor</button>
-                </div>
-            </section>
+            <button class="btn-primary btn-create-job" onclick="openCreateJobModal()">Create Job</button>
 
             <div class="admin-jobs-grid">
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <div>
+                            <div class="admin-panel-kicker">Review</div>
+                            <div class="admin-panel-title">Needs Approval</div>
+                        </div>
+                        <div class="admin-panel-count" id="admin-approval-queue-badge">0</div>
+                    </div>
+                    <div class="admin-panel-body">
+                        <div id="admin-approval-queue"></div>
+                    </div>
+                </section>
+
                 <section class="admin-panel">
                     <div class="admin-panel-header">
                         <div>
@@ -146,32 +133,6 @@
                     </div>
                     <div class="admin-panel-body">
                         <div id="admin-job-list"></div>
-                    </div>
-                </section>
-
-                <section class="admin-panel">
-                    <div class="admin-panel-header">
-                        <div>
-                            <div class="admin-panel-kicker">Approve</div>
-                            <div class="admin-panel-title">Time Sessions</div>
-                        </div>
-                        <div class="admin-panel-count" id="admin-time-session-badge">0</div>
-                    </div>
-                    <div class="admin-panel-body">
-                        <div id="admin-time-approval-list"></div>
-                    </div>
-                </section>
-
-                <section class="admin-panel">
-                    <div class="admin-panel-header">
-                        <div>
-                            <div class="admin-panel-kicker">Review</div>
-                            <div class="admin-panel-title">Pending Approvals</div>
-                        </div>
-                        <div class="admin-panel-count" id="admin-pending-review-badge">0</div>
-                    </div>
-                    <div class="admin-panel-body">
-                        <div id="admin-approval-list"></div>
                     </div>
                 </section>
             </div>
@@ -221,6 +182,29 @@
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-primary btn-secondary" onclick="closeEditJobModal()" style="flex:1;">Cancel</button>
             <button class="btn-primary" onclick="saveEditJob()" style="flex:1;">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Job Modal -->
+<div id="create-job-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
+        <h2 style="margin:0 0 20px; color:var(--text-main);">Create Job</h2>
+        <input type="text" id="new-job-title" placeholder="Task Description (e.g., Shop Cleanup)">
+        <div class="row-inputs">
+            <select id="new-job-type">
+                <option value="fixed">Fixed Rate</option>
+                <option value="hourly">Hourly Punch Clock</option>
+            </select>
+            <select id="new-job-currency">
+                <option value="BB">Barnes Bucks</option>
+                <option value="USD">Dollars (USD)</option>
+            </select>
+        </div>
+        <input type="number" id="new-job-reward" placeholder="Reward / Hourly Rate">
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeCreateJobModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="createJob()" style="flex:1;">Post to Floor</button>
         </div>
     </div>
 </div>
@@ -580,6 +564,14 @@
     function closeEditJobModal() {
         document.getElementById('edit-job-modal').style.display = 'none';
         currentEditingJob = null;
+    }
+
+    function openCreateJobModal() {
+        document.getElementById('create-job-modal').style.display = 'flex';
+    }
+
+    function closeCreateJobModal() {
+        document.getElementById('create-job-modal').style.display = 'none';
     }
 
     function saveEditJob() {
@@ -1072,45 +1064,52 @@
         allJobs.forEach(job => {
             const isHourly = job.type === 'hourly';
             const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
-            const statusColor = job.status === 'active' ? 'var(--accent-blue)' : 'var(--text-muted)';
             const statusText = job.status === 'active' ? 'In Progress' : 'Open';
+            const rewardTone = job.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)';
             
             jList.innerHTML += `
-                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="list-item admin-posted-job">
+                    <div class="admin-posted-job-main">
                         <div class="list-col">
-                            <div class="item-title">${job.title} ${isHourly ? '<i class="fas fa-clock" style="color:var(--accent-blue);font-size:0.8em;margin-left:5px;"></i>' : ''}</div>
-                            <div class="item-sub">${isHourly ? 'Hourly Rate' : 'Fixed Reward'}: ${rateTxt} <span style="color:${statusColor};">(${statusText})</span></div>
+                            <div class="admin-posted-job-topline">
+                                <div class="item-title">${job.title}</div>
+                                <div class="admin-posted-job-status ${job.status === 'active' ? 'is-active' : ''}">${statusText}</div>
+                            </div>
+                            <div class="admin-posted-job-meta">${isHourly ? 'Hourly Shift' : 'Fixed Contract'}</div>
+                            <div class="admin-posted-job-value" style="color:${rewardTone};">${rateTxt}</div>
                         </div>
-                        <div style="display:flex; gap:5px;">
-                            <button class="btn-icon" onclick="openEditJobModal('${job.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon btn-red" onclick="deleteJob('${job.id}')"><i class="fas fa-trash"></i></button>
-                        </div>
+                    </div>
+                    <div class="admin-posted-job-actions">
+                        <button class="btn-icon" onclick="openEditJobModal('${job.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon btn-red" onclick="deleteJob('${job.id}')"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>`;
         });
 
-        // Time Session Approvals View
-        const tList = document.getElementById('admin-time-approval-list');
-        tList.innerHTML = '';
+        // Approval Queue View
+        const approvalQueue = document.getElementById('admin-approval-queue');
+        approvalQueue.innerHTML = '';
         if (!dbData.timeSessions) dbData.timeSessions = [];
         const pendingSessions = dbData.timeSessions.filter(s => s.status === 'pending');
-        document.getElementById('admin-time-session-count').innerText = pendingSessions.length;
-        document.getElementById('admin-time-session-badge').innerText = pendingSessions.length;
-        if(pendingSessions.length === 0) tList.innerHTML = '<p style="color:var(--text-muted);">No pending time sessions.</p>';
+        const pending = dbData.jobs.filter(j => j.status === 'pending');
+        const approvalCount = pendingSessions.length + pending.length;
+        document.getElementById('admin-approval-queue-count').innerText = approvalCount;
+        document.getElementById('admin-approval-queue-badge').innerText = approvalCount;
+        if(approvalCount === 0) approvalQueue.innerHTML = '<p style="color:var(--text-muted);">No items need approval.</p>';
 
         pendingSessions.forEach(session => {
             const worker = dbData.users.find(u => u.id === session.userId);
             const earningsBB = ((session.duration / 60) * session.rateBB).toFixed(2);
             const earningsUSD = ((session.duration / 60) * session.rateUSD).toFixed(2);
             
-            tList.innerHTML += `
+            approvalQueue.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
                     <div style="display:flex; justify-content:space-between;">
                         <div class="list-col">
                             <div class="item-title">${worker.name} - General Work</div>
                             <div class="item-sub">${formatDuration(session.duration)} worked</div>
                         </div>
+                        <div class="admin-queue-tag">Time Session</div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem;">
                         <div>
@@ -1119,20 +1118,12 @@
                         </div>
                     </div>
                     <div class="row-inputs" style="margin:0; align-items:center;">
-                        <button class="btn-primary" style="background:var(--gold); color:var(--bg-dark); width:auto; padding:12px 20px;" onclick="approveTimeSession('${session.id}', 'BB')">Approve as BB</button>
-                        <button class="btn-primary" style="background:var(--usd-green); color:black; width:auto; padding:12px 20px;" onclick="approveTimeSession('${session.id}', 'USD')">Approve as USD</button>
+                        <button class="btn-primary btn-gold" style="width:auto; padding:12px 20px;" onclick="approveTimeSession('${session.id}', 'BB')">Approve as BB</button>
+                        <button class="btn-primary btn-green" style="width:auto; padding:12px 20px;" onclick="approveTimeSession('${session.id}', 'USD')">Approve as USD</button>
                         <button class="btn-primary btn-red" style="width:auto; padding:12px 20px;" onclick="rejectTimeSession('${session.id}')">Reject</button>
                     </div>
                 </div>`;
         });
-
-        // Approvals View
-        const aList = document.getElementById('admin-approval-list');
-        aList.innerHTML = '';
-        const pending = dbData.jobs.filter(j => j.status === 'pending');
-        document.getElementById('admin-pending-review-count').innerText = pending.length;
-        document.getElementById('admin-pending-review-badge').innerText = pending.length;
-        if(pending.length === 0) aList.innerHTML = '<p style="color:var(--text-muted);">No pending reviews.</p>';
 
         pending.forEach(j => {
             const worker = dbData.users.find(u => u.id === j.claimedBy);
@@ -1145,7 +1136,7 @@
                 timeStr = `${formatDuration(durationMinutes)} worked`;
             }
 
-            aList.innerHTML += `
+            approvalQueue.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:12px; align-items:stretch;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
                         <div class="list-col">
@@ -1153,6 +1144,9 @@
                             <div class="item-sub">${worker ? worker.name : 'Unknown user'} • ${j.type === 'hourly' ? 'Hourly Shift' : 'Fixed Contract'}</div>
                             <div class="item-sub">${timeStr}</div>
                         </div>
+                        <div class="admin-queue-tag">Contract</div>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; align-items:flex-start; gap:12px;">
                         <div class="item-amt" style="color:${j.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)'};">
                             ${j.currency === 'BB' ? `${suggestedPayout.toFixed(2)} BB` : `$${suggestedPayout.toFixed(2)}`}
                         </div>
@@ -1433,6 +1427,7 @@
         
         document.getElementById('new-job-title').value = '';
         document.getElementById('new-job-reward').value = '';
+        closeCreateJobModal();
         showToast("Contract added to floor");
     }
 

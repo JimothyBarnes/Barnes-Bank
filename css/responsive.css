@@ -122,12 +122,12 @@
     
     .btn-primary:hover {
         transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 15px 35px rgba(255,255,255,0.15);
-        background: linear-gradient(135deg, var(--text-main) 0%, #f8f8f8 100%);
+        box-shadow: 0 16px 32px rgba(0,0,0,0.28);
+        border-color: rgba(255,255,255,0.18);
     }
 
     .admin-jobs-overview {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 16px;
     }
 
@@ -136,20 +136,51 @@
     }
 
     .admin-jobs-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
         align-items: start;
     }
 
-    .admin-panel-compose {
-        max-width: 520px;
-    }
-
-    .admin-panel-compose .btn-primary {
+    .btn-primary.btn-create-job {
         max-width: none;
+        background: linear-gradient(135deg, rgba(19, 26, 21, 0.96) 0%, rgba(12, 18, 15, 0.96) 100%);
+        color: var(--usd-green);
+        border: 1px solid rgba(48, 209, 88, 0.5);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.03);
     }
 
-    .admin-panel:last-child {
-        grid-column: 1 / -1;
+    .btn-primary.btn-green:hover {
+        border-color: rgba(48, 209, 88, 0.68);
+        box-shadow: 0 16px 32px rgba(0,0,0,0.28);
+    }
+
+    .btn-primary.btn-gold:hover {
+        border-color: rgba(212, 175, 55, 0.66);
+        box-shadow: 0 16px 32px rgba(0,0,0,0.28);
+    }
+
+    .btn-primary.btn-red:hover {
+        border-color: rgba(255, 69, 58, 0.58);
+        box-shadow: 0 16px 32px rgba(0,0,0,0.28);
+    }
+
+    .admin-posted-job {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+    }
+
+    .admin-posted-job-main {
+        flex: 1;
+    }
+
+    .admin-posted-job-topline {
+        align-items: center;
+    }
+
+    .admin-posted-job-actions {
+        flex-shrink: 0;
+        align-items: center;
     }
     
     .nav-btn {
@@ -239,6 +270,11 @@
 @media (max-width: 767px) {
     .admin-jobs-overview {
         grid-template-columns: 1fr;
+    }
+
+    .admin-posted-job-topline {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .job-card-footer {
@@ -332,13 +368,15 @@
     .btn-primary {
         padding: 18px;
         font-size: 1.1rem;
-        background: linear-gradient(135deg, var(--text-main) 0%, #f0f0f0 100%);
-        border: 1px solid rgba(255,255,255,0.1);
+        background: linear-gradient(135deg, rgba(24, 24, 26, 0.96) 0%, rgba(14, 14, 16, 0.96) 100%);
+        color: var(--text-main);
+        border: 1px solid rgba(255,255,255,0.12);
     }
     
     .btn-primary:hover {
         transform: translateY(-4px) scale(1.03);
-        box-shadow: 0 20px 40px rgba(255,255,255,0.2);
+        box-shadow: 0 18px 36px rgba(0,0,0,0.3);
+        border-color: rgba(255,255,255,0.18);
     }
 
     .btn-primary.btn-card-action {
@@ -353,10 +391,31 @@
     }
 
     .btn-primary.btn-secondary {
-        background: var(--surface-light);
+        background: linear-gradient(135deg, rgba(39, 39, 42, 0.96) 0%, rgba(28, 28, 30, 0.96) 100%);
         color: var(--text-main);
         border: 1px solid rgba(255,255,255,0.1);
         box-shadow: 0 8px 20px rgba(0,0,0,0.22);
+    }
+
+    .btn-primary.btn-green {
+        background: linear-gradient(135deg, rgba(19, 26, 21, 0.96) 0%, rgba(12, 18, 15, 0.96) 100%);
+        color: var(--usd-green);
+        border: 1px solid rgba(48, 209, 88, 0.5);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .btn-primary.btn-gold {
+        background: linear-gradient(135deg, rgba(34, 29, 15, 0.96) 0%, rgba(24, 19, 10, 0.96) 100%);
+        color: var(--gold);
+        border: 1px solid rgba(212, 175, 55, 0.48);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .btn-primary.btn-red {
+        background: linear-gradient(135deg, rgba(31, 18, 18, 0.96) 0%, rgba(20, 11, 11, 0.96) 100%);
+        color: var(--accent-red);
+        border: 1px solid rgba(255, 69, 58, 0.4);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.02);
     }
     
     .nav-btn {
