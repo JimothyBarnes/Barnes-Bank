@@ -27,7 +27,7 @@
     <div id="view-login" class="view active">
         <div style="margin-top: 40px; margin-bottom: 40px;">
             <h1 style="font-size: 2.2rem; margin: 0 0 10px;">Sign In</h1>
-            <p style="color: var(--text-muted); margin: 0;">Dual-Currency Wealth Portal.</p>
+            <p style="color: var(--text-muted); margin: 0;">Currency Command Center</p>
         </div>
         <input type="text" id="login-user" placeholder="Username" autocapitalize="none">
         <input type="password" id="login-pass" placeholder="Passcode">
@@ -256,6 +256,39 @@
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-primary btn-secondary" onclick="closeCreateItemModal()" style="flex:1;">Cancel</button>
             <button class="btn-primary" onclick="createStoreItem()" style="flex:1;">Add Item</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Store Item Modal -->
+<div id="edit-item-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
+        <h2 style="margin:0 0 20px; color:var(--text-main);">Edit Store Item</h2>
+        <input type="text" id="edit-item-name" placeholder="Item Name">
+        <input type="text" id="edit-item-description" placeholder="Description">
+        <div class="row-inputs">
+            <input type="number" id="edit-item-price" placeholder="Price" style="flex: 1;">
+            <select id="edit-item-currency" style="flex: 1;">
+                <option value="BB">Barnes Bucks</option>
+                <option value="USD">Dollars (USD)</option>
+            </select>
+        </div>
+        <div class="row-inputs">
+            <select id="edit-item-type" style="flex: 1;">
+                <option value="persistent">Persistent</option>
+                <option value="onetime">One-time</option>
+            </select>
+            <select id="edit-item-category" style="flex: 1;">
+                <option value="privilege">Privilege</option>
+                <option value="treat">Treat</option>
+                <option value="toy">Toy</option>
+                <option value="experience">Experience</option>
+            </select>
+        </div>
+        <input type="number" id="edit-item-stock" placeholder="Stock (leave blank for unlimited)">
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeEditItemModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="saveEditStoreItem()" style="flex:1;">Save Changes</button>
         </div>
     </div>
 </div>
@@ -750,6 +783,7 @@
 
     // --- STORE FUNCTIONS ---
     let currentPurchaseItem = null;
+    let currentEditingItem = null;
 
     function openCreateItemModal() {
         document.getElementById('create-item-modal').style.display = 'flex';
@@ -765,6 +799,25 @@
         document.getElementById('new-item-type').value = 'persistent';
         document.getElementById('new-item-category').value = 'privilege';
         document.getElementById('new-item-stock').value = '';
+    }
+
+    function openEditItemModal(itemId) {
+        currentEditingItem = dbData.storeItems.find(i => i.id === itemId);
+        if (!currentEditingItem) return;
+
+        document.getElementById('edit-item-name').value = currentEditingItem.name;
+        document.getElementById('edit-item-description').value = currentEditingItem.description;
+        document.getElementById('edit-item-price').value = currentEditingItem.price;
+        document.getElementById('edit-item-currency').value = currentEditingItem.currency;
+        document.getElementById('edit-item-type').value = currentEditingItem.type;
+        document.getElementById('edit-item-category').value = currentEditingItem.category || 'privilege';
+        document.getElementById('edit-item-stock').value = currentEditingItem.stock === null ? '' : currentEditingItem.stock;
+        document.getElementById('edit-item-modal').style.display = 'flex';
+    }
+
+    function closeEditItemModal() {
+        document.getElementById('edit-item-modal').style.display = 'none';
+        currentEditingItem = null;
     }
 
     function createStoreItem() {
@@ -806,6 +859,48 @@
         closeCreateItemModal();
         renderAdminData();
         showToast("Store item added successfully!");
+    }
+
+    function saveEditStoreItem() {
+        if (!currentEditingItem) return;
+
+        const name = document.getElementById('edit-item-name').value.trim();
+        const description = document.getElementById('edit-item-description').value.trim();
+        const price = parseFloat(document.getElementById('edit-item-price').value);
+        const currency = document.getElementById('edit-item-currency').value;
+        const type = document.getElementById('edit-item-type').value;
+        const category = document.getElementById('edit-item-category').value;
+        const stockInput = document.getElementById('edit-item-stock').value.trim();
+        const stock = stockInput === '' ? null : parseInt(stockInput, 10);
+
+        if (!name || !description || isNaN(price) || price <= 0) {
+            showToast("Please fill in all required fields with valid values");
+            return;
+        }
+
+        if (stockInput !== '' && (isNaN(stock) || stock < 0)) {
+            showToast("Stock must be blank or a valid number");
+            return;
+        }
+
+        const itemIndex = dbData.storeItems.findIndex(i => i.id === currentEditingItem.id);
+        if (itemIndex === -1) return;
+
+        dbData.storeItems[itemIndex] = {
+            ...dbData.storeItems[itemIndex],
+            name,
+            description,
+            price,
+            currency,
+            type,
+            category,
+            stock
+        };
+
+        saveDB();
+        closeEditItemModal();
+        renderAdminData();
+        showToast("Store item updated successfully!");
     }
 
     function toggleStoreItem(itemId) {
@@ -1193,6 +1288,7 @@
                             </div>
                         </div>
                         <div style="display:flex; gap:5px;">
+                            <button class="btn-icon" onclick="openEditItemModal('${item.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
                             <button class="btn-icon" onclick="toggleStoreItem('${item.id}')" style="background:var(--surface-light);"><i class="fas fa-${item.isActive ? 'eye' : 'eye-slash'}"></i></button>
                             <button class="btn-icon btn-red" onclick="deleteStoreItem('${item.id}')"><i class="fas fa-trash"></i></button>
                         </div>
