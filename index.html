@@ -65,9 +65,6 @@
     <div id="view-kid-store" class="view">
         <div class="section-title">Store</div>
         <div id="kid-store-items"></div>
-        
-        <div class="section-title" style="margin-top:40px;">My Purchases</div>
-        <div id="kid-purchases"></div>
     </div>
 
     <div id="view-kid-send" class="view">
@@ -1335,32 +1332,6 @@
                         <button class="btn-primary ${canAfford ? '' : 'btn-card-action'} store-card-btn" onclick="openPurchaseModal('${item.id}')" ${canAfford ? '' : 'disabled'}>
                             ${canAfford ? 'Buy Now' : 'Cannot Afford'}
                         </button>
-                    </div>
-                </div>`;
-        });
-
-        // My Purchases
-        const purchasesContainer = document.getElementById('kid-purchases');
-        purchasesContainer.innerHTML = '';
-        if (!dbData.purchases) dbData.purchases = [];
-        
-        const myPurchases = dbData.purchases.filter(p => p.userId === currentUser.id && p.status === 'active');
-        if(myPurchases.length === 0) purchasesContainer.innerHTML = '<p style="color:var(--text-muted);">No purchases yet.</p>';
-        
-        myPurchases.forEach(purchase => {
-            const typeIcon = purchase.type === 'persistent' ? 'fas fa-infinity' : 'fas fa-check-circle';
-            purchasesContainer.innerHTML += `
-                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="list-col">
-                            <div class="item-title">${purchase.itemName}</div>
-                            <div class="item-sub" style="display:flex; gap:10px; align-items:center;">
-                                <span style="color:var(--text-muted);"><i class="${typeIcon}" style="font-size:0.8em;"></i> ${purchase.type}</span>
-                                <span style="color:var(--text-muted);">|</span>
-                                <span style="color:var(--text-muted);">Purchased ${getDate(purchase.purchasedAt)}</span>
-                            </div>
-                        </div>
-                        <div style="color:var(--text-muted); font-size:0.8rem;">${purchase.type === 'persistent' ? 'Persistent' : 'One-time'}</div>
                     </div>
                 </div>`;
         });

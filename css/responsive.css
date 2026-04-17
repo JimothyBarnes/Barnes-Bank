@@ -295,6 +295,7 @@
     }
 
     .store-card-footer {
+        flex-direction: column;
         align-items: stretch;
     }
 
