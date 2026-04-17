@@ -1291,7 +1291,7 @@
                         <div class="item-title">${job.title} ${isHourly ? '<i class="fas fa-clock" style="color:var(--accent-blue);font-size:0.8em;margin-left:5px;"></i>' : ''}</div>
                         <div class="item-sub">${isHourly ? 'Hourly Rate' : 'Fixed Reward'}: ${rateTxt}</div>
                     </div>
-                    <button class="btn-primary ${isHourly ? '' : 'btn-secondary'}" style="width:auto; padding:8px 16px;" onclick="claimJob('${job.id}')">
+                    <button class="btn-primary ${isHourly ? '' : 'btn-card-action'}" style="width:auto; padding:8px 16px;" onclick="claimJob('${job.id}')">
                         ${isHourly ? 'Clock In' : 'Claim'}
                     </button>
                 </div>`;
@@ -1321,7 +1321,7 @@
                                 <span style="color:var(--text-muted);"><i class="${typeIcon}" style="font-size:0.8em;"></i> ${item.type}</span>
                             </div>
                         </div>
-                        <button class="btn-primary ${canAfford ? '' : 'btn-secondary'}" onclick="openPurchaseModal('${item.id}')" ${canAfford ? '' : 'disabled'}>
+                        <button class="btn-primary ${canAfford ? '' : 'btn-card-action'}" onclick="openPurchaseModal('${item.id}')" ${canAfford ? '' : 'disabled'}>
                             ${canAfford ? 'Buy' : 'Cannot Afford'}
                         </button>
                     </div>

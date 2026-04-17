@@ -36,9 +36,26 @@
     box-shadow: 0 2px 8px rgba(255,255,255,0.1);
 }
 
-.btn-secondary { 
+.btn-primary.btn-secondary { 
     background: var(--surface-light); 
     color: var(--text-main); 
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.22);
+}
+
+.btn-primary.btn-card-action {
+    background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.08) 100%);
+    color: var(--text-main);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+}
+
+.btn-primary.btn-card-action:disabled {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 .btn-green { 

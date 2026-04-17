@@ -324,6 +324,24 @@
         transform: translateY(-4px) scale(1.03);
         box-shadow: 0 20px 40px rgba(255,255,255,0.2);
     }
+
+    .btn-primary.btn-card-action {
+        background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.08) 100%);
+        color: var(--text-main);
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+    }
+
+    .btn-primary.btn-card-action:hover {
+        box-shadow: 0 14px 28px rgba(0,0,0,0.3);
+    }
+
+    .btn-primary.btn-secondary {
+        background: var(--surface-light);
+        color: var(--text-main);
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.22);
+    }
     
     .nav-btn {
         padding: 18px;
