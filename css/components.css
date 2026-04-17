@@ -255,6 +255,102 @@
     border-radius: 50%;
 }
 
+/* --- Admin Jobs View --- */
+.admin-jobs-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.admin-jobs-overview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.admin-overview-card,
+.admin-panel {
+    background: linear-gradient(135deg, var(--surface) 0%, #19191b 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+
+.admin-overview-card {
+    padding: 16px 18px;
+}
+
+.admin-overview-label,
+.admin-panel-kicker {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+}
+
+.admin-overview-value {
+    margin-top: 6px;
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.admin-jobs-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.admin-panel {
+    overflow: hidden;
+}
+
+.admin-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 18px 0;
+}
+
+.admin-panel-title {
+    margin-top: 4px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.admin-panel-count {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.admin-panel-body {
+    padding: 18px;
+}
+
+.admin-panel-body .section-title {
+    display: none;
+}
+
+.admin-panel-body .list-item:last-child,
+.admin-panel-body p:last-child {
+    margin-bottom: 0;
+}
+
+.admin-panel-compose .btn-primary {
+    margin-bottom: 0;
+}
+
 /* --- Toast Notifications --- */
 #toast-container { 
     position: fixed; 

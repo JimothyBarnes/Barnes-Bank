@@ -95,30 +95,87 @@
     </div>
 
     <div id="view-admin-jobs" class="view">
-        <div class="section-title">Issue Contract / Shift</div>
-        <input type="text" id="new-job-title" placeholder="Task Description (e.g., Shop Cleanup)">
-        
-        <div class="row-inputs">
-            <select id="new-job-type">
-                <option value="fixed">Fixed Rate</option>
-                <option value="hourly">Hourly Punch Clock</option>
-            </select>
-            <select id="new-job-currency">
-                <option value="BB">Barnes Bucks</option>
-                <option value="USD">Dollars (USD)</option>
-            </select>
+        <div class="admin-jobs-shell">
+            <div class="admin-jobs-overview">
+                <div class="admin-overview-card">
+                    <div class="admin-overview-label">Open Jobs</div>
+                    <div class="admin-overview-value" id="admin-open-job-count">0</div>
+                </div>
+                <div class="admin-overview-card">
+                    <div class="admin-overview-label">Time Sessions</div>
+                    <div class="admin-overview-value" id="admin-time-session-count">0</div>
+                </div>
+                <div class="admin-overview-card">
+                    <div class="admin-overview-label">Pending Reviews</div>
+                    <div class="admin-overview-value" id="admin-pending-review-count">0</div>
+                </div>
+            </div>
+
+            <section class="admin-panel admin-panel-compose">
+                <div class="admin-panel-header">
+                    <div>
+                        <div class="admin-panel-kicker">Create</div>
+                        <div class="admin-panel-title">Issue Contract or Shift</div>
+                    </div>
+                </div>
+                <div class="admin-panel-body">
+                    <input type="text" id="new-job-title" placeholder="Task Description (e.g., Shop Cleanup)">
+                    <div class="row-inputs">
+                        <select id="new-job-type">
+                            <option value="fixed">Fixed Rate</option>
+                            <option value="hourly">Hourly Punch Clock</option>
+                        </select>
+                        <select id="new-job-currency">
+                            <option value="BB">Barnes Bucks</option>
+                            <option value="USD">Dollars (USD)</option>
+                        </select>
+                    </div>
+                    <input type="number" id="new-job-reward" placeholder="Reward / Hourly Rate">
+                    <button class="btn-primary" onclick="createJob()">Post to Floor</button>
+                </div>
+            </section>
+
+            <div class="admin-jobs-grid">
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <div>
+                            <div class="admin-panel-kicker">Manage</div>
+                            <div class="admin-panel-title">Posted Jobs</div>
+                        </div>
+                        <div class="admin-panel-count" id="admin-open-job-badge">0</div>
+                    </div>
+                    <div class="admin-panel-body">
+                        <div id="admin-job-list"></div>
+                    </div>
+                </section>
+
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <div>
+                            <div class="admin-panel-kicker">Approve</div>
+                            <div class="admin-panel-title">Time Sessions</div>
+                        </div>
+                        <div class="admin-panel-count" id="admin-time-session-badge">0</div>
+                    </div>
+                    <div class="admin-panel-body">
+                        <div id="admin-time-approval-list"></div>
+                    </div>
+                </section>
+
+                <section class="admin-panel">
+                    <div class="admin-panel-header">
+                        <div>
+                            <div class="admin-panel-kicker">Review</div>
+                            <div class="admin-panel-title">Pending Approvals</div>
+                        </div>
+                        <div class="admin-panel-count" id="admin-pending-review-badge">0</div>
+                    </div>
+                    <div class="admin-panel-body">
+                        <div id="admin-approval-list"></div>
+                    </div>
+                </section>
+            </div>
         </div>
-        <input type="number" id="new-job-reward" placeholder="Reward / Hourly Rate">
-        <button class="btn-primary" onclick="createJob()">Post to Floor</button>
-
-        <div class="section-title" style="margin-top:40px;">Posted Jobs Management</div>
-        <div id="admin-job-list"></div>
-
-        <div class="section-title" style="margin-top:40px;">Time Session Approvals</div>
-        <div id="admin-time-approval-list"></div>
-
-        <div class="section-title" style="margin-top:40px;">Pending Review & Approvals</div>
-        <div id="admin-approval-list"></div>
     </div>
 
     <div id="view-admin-store" class="view">
@@ -902,110 +959,6 @@
         showToast(`Purchased ${currentPurchaseItem.name}!`);
     }
 
-    
-    // --- KID LOGIC ---
-    function renderKidData() {
-        // Balances
-        document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB.toFixed(2);
-        document.getElementById('kid-bal-usd').innerText = currentUser.balanceUSD.toFixed(2);
-        
-        // Active Shifts - Jobs and General Time
-        const shiftContainer = document.getElementById('kid-active-shifts');
-        shiftContainer.innerHTML = '';
-        
-        // Check for active job
-        const activeJob = dbData.jobs.find(j => j.claimedBy === currentUser.id && j.status === 'active');
-        if(activeJob) {
-            shiftContainer.innerHTML += `
-                <div class="active-shift">
-                    <div>
-                        <div style="font-weight:600;"><span class="pulse-dot"></span>Punched In: ${activeJob.title}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Rate: ${formatMoney(activeJob.rate, activeJob.currency)} / hr</div>
-                    </div>
-                    <button class="btn-primary btn-red" style="width:auto; padding:8px 16px;" onclick="clockOut('${activeJob.id}')">Clock Out</button>
-                </div>`;
-        }
-        
-        // Check for active general time session
-        if (!dbData.timeSessions) dbData.timeSessions = [];
-        const activeSession = dbData.timeSessions.find(s => s.userId === currentUser.id && s.status === 'active');
-        if(activeSession) {
-            const currentDuration = Math.round((Date.now() - activeSession.startTime) / (1000 * 60));
-            shiftContainer.innerHTML += `
-                <div class="active-shift">
-                    <div>
-                        <div style="font-weight:600;"><span class="pulse-dot"></span>General Work Session</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Current time: ${formatDuration(currentDuration)}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted);">Rates: ${activeSession.rateBB} BB/hr | $${activeSession.rateUSD}/hr</div>
-                    </div>
-                    <button class="btn-primary btn-red" style="width:auto; padding:8px 16px;" onclick="clockOutGeneral()">Clock Out</button>
-                </div>`;
-        }
-
-        // Ledger
-        const txList = document.getElementById('kid-transactions');
-        txList.innerHTML = '';
-        const myTxs = dbData.transactions.filter(t => t.userId === currentUser.id).slice(0, 15);
-        if(myTxs.length === 0) txList.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No recent activity.</p>';
-        myTxs.forEach(tx => {
-            const isPos = tx.type === 'credit';
-            txList.innerHTML += `
-                <div class="list-item">
-                    <div class="list-col">
-                        <div class="item-title">${tx.desc}</div>
-                        <div class="item-sub">${tx.date}</div>
-                    </div>
-                    <div class="item-amt" style="color: ${isPos ? 'var(--usd-green)' : 'var(--text-main)'}">
-                        ${isPos ? '+' : '-'}${formatMoney(tx.amt, tx.currency)}
-                    </div>
-                </div>`;
-        });
-
-        // Jobs Board
-        const jList = document.getElementById('kid-jobs-list');
-        jList.innerHTML = '';
-        const openJobs = dbData.jobs.filter(j => j.status === 'open');
-        if(openJobs.length === 0) jList.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No contracts available.</p>';
-        
-        openJobs.forEach(job => {
-            const isHourly = job.type === 'hourly';
-            const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
-            jList.innerHTML += `
-                <div class="list-item">
-                    <div class="list-col">
-                        <div class="item-title">${job.title} ${isHourly ? '<i class="fas fa-clock" style="color:var(--accent-blue);font-size:0.8em;margin-left:5px;"></i>' : ''}</div>
-                        <div class="item-sub">${isHourly ? 'Hourly Rate' : 'Fixed Reward'}: ${rateTxt}</div>
-                    </div>
-                    <button class="btn-primary ${isHourly ? '' : 'btn-secondary'}" style="width:auto; padding:8px 16px;" onclick="claimJob('${job.id}')">
-                        ${isHourly ? 'Clock In' : 'Claim'}
-                    </button>
-                </div>`;
-        });
-
-        // Transfer View
-        const sel = document.getElementById('transfer-to');
-        console.log("Transfer dropdown element:", sel);
-        console.log("Transfer dropdown innerHTML before:", sel.innerHTML);
-        console.log("Populating transfer recipients...");
-        console.log("Current user:", currentUser);
-        console.log("All users:", dbData.users);
-        
-        if (!sel) {
-            console.log("ERROR: Transfer dropdown element not found!");
-            return;
-        }
-        
-        sel.innerHTML = '<option value="">Select Recipient...</option>';
-        const otherKids = dbData.users.filter(u => u.role === 'kid' && u.id !== currentUser.id);
-        console.log("Other kids:", otherKids);
-        otherKids.forEach(u => {
-            console.log("Adding recipient:", u.name, u.id);
-            sel.innerHTML += `<option value="${u.id}">${u.name}</option>`;
-        });
-        console.log("Transfer dropdown innerHTML after:", sel.innerHTML);
-        console.log("Transfer dropdown options count:", sel.options.length);
-    }
-
     function claimJob(id) {
         const job = dbData.jobs.find(j => j.id === id);
         job.claimedBy = currentUser.id;
@@ -1112,6 +1065,8 @@
         const jList = document.getElementById('admin-job-list');
         jList.innerHTML = '';
         const allJobs = dbData.jobs.filter(j => j.status === 'open' || j.status === 'active');
+        document.getElementById('admin-open-job-count').innerText = allJobs.length;
+        document.getElementById('admin-open-job-badge').innerText = allJobs.length;
         if(allJobs.length === 0) jList.innerHTML = '<p style="color:var(--text-muted);">No posted jobs.</p>';
         
         allJobs.forEach(job => {
@@ -1140,6 +1095,8 @@
         tList.innerHTML = '';
         if (!dbData.timeSessions) dbData.timeSessions = [];
         const pendingSessions = dbData.timeSessions.filter(s => s.status === 'pending');
+        document.getElementById('admin-time-session-count').innerText = pendingSessions.length;
+        document.getElementById('admin-time-session-badge').innerText = pendingSessions.length;
         if(pendingSessions.length === 0) tList.innerHTML = '<p style="color:var(--text-muted);">No pending time sessions.</p>';
 
         pendingSessions.forEach(session => {
@@ -1173,12 +1130,39 @@
         const aList = document.getElementById('admin-approval-list');
         aList.innerHTML = '';
         const pending = dbData.jobs.filter(j => j.status === 'pending');
+        document.getElementById('admin-pending-review-count').innerText = pending.length;
+        document.getElementById('admin-pending-review-badge').innerText = pending.length;
         if(pending.length === 0) aList.innerHTML = '<p style="color:var(--text-muted);">No pending reviews.</p>';
 
         pending.forEach(j => {
             const worker = dbData.users.find(u => u.id === j.claimedBy);
             let suggestedPayout = j.rate;
             let timeStr = "Fixed Job";
+            if (j.type === 'hourly' && j.startTime && j.endTime) {
+                const durationMinutes = Math.max(1, Math.round((j.endTime - j.startTime) / (1000 * 60)));
+                const durationHours = durationMinutes / 60;
+                suggestedPayout = parseFloat((durationHours * j.rate).toFixed(2));
+                timeStr = `${formatDuration(durationMinutes)} worked`;
+            }
+
+            aList.innerHTML += `
+                <div class="list-item" style="flex-direction:column; gap:12px; align-items:stretch;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                        <div class="list-col">
+                            <div class="item-title">${j.title}</div>
+                            <div class="item-sub">${worker ? worker.name : 'Unknown user'} • ${j.type === 'hourly' ? 'Hourly Shift' : 'Fixed Contract'}</div>
+                            <div class="item-sub">${timeStr}</div>
+                        </div>
+                        <div class="item-amt" style="color:${j.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)'};">
+                            ${j.currency === 'BB' ? `${suggestedPayout.toFixed(2)} BB` : `$${suggestedPayout.toFixed(2)}`}
+                        </div>
+                    </div>
+                    <div class="row-inputs" style="margin:0; align-items:center;">
+                        <input type="number" id="payout-${j.id}" value="${suggestedPayout.toFixed(2)}" min="0" step="0.01" placeholder="Final payout">
+                        <button class="btn-primary" style="width:auto; padding:12px 20px;" onclick="approveJob('${j.id}')">Approve</button>
+                        <button class="btn-primary btn-secondary" style="width:auto; padding:12px 20px;" onclick="returnJobToOpen('${j.id}')">Return</button>
+                    </div>
+                </div>`;
         });
 
         // Store Management View
@@ -1289,6 +1273,27 @@
                     <div class="item-amt ${isCredit ? 'credit' : 'debit'}">
                         ${isCredit ? '+' : '-'}${formatMoney(displayAmount, tx.currency)}
                     </div>
+                </div>`;
+        });
+
+        // Jobs Board
+        const jList = document.getElementById('kid-jobs-list');
+        jList.innerHTML = '';
+        const openJobs = dbData.jobs.filter(j => j.status === 'open');
+        if(openJobs.length === 0) jList.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No contracts available.</p>';
+
+        openJobs.forEach(job => {
+            const isHourly = job.type === 'hourly';
+            const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
+            jList.innerHTML += `
+                <div class="list-item">
+                    <div class="list-col">
+                        <div class="item-title">${job.title} ${isHourly ? '<i class="fas fa-clock" style="color:var(--accent-blue);font-size:0.8em;margin-left:5px;"></i>' : ''}</div>
+                        <div class="item-sub">${isHourly ? 'Hourly Rate' : 'Fixed Reward'}: ${rateTxt}</div>
+                    </div>
+                    <button class="btn-primary ${isHourly ? '' : 'btn-secondary'}" style="width:auto; padding:8px 16px;" onclick="claimJob('${job.id}')">
+                        ${isHourly ? 'Clock In' : 'Claim'}
+                    </button>
                 </div>`;
         });
         
@@ -1440,6 +1445,22 @@
         saveDB();
         showToast(`Paid ${user.name} ${formatMoney(finalAmt, job.currency)}`);
         renderAdminData();
+    }
+
+    function returnJobToOpen(jobId) {
+        const job = dbData.jobs.find(j => j.id === jobId);
+        if (!job) return;
+
+        if (!confirm(`Return "${job.title}" to the jobs board?`)) return;
+
+        job.status = 'open';
+        job.claimedBy = null;
+        job.startTime = null;
+        job.endTime = null;
+
+        saveDB();
+        renderAdminData();
+        showToast("Job returned to the board");
     }
 </script>
 </body>

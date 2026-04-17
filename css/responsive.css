@@ -125,6 +125,32 @@
         box-shadow: 0 15px 35px rgba(255,255,255,0.15);
         background: linear-gradient(135deg, var(--text-main) 0%, #f8f8f8 100%);
     }
+
+    .admin-jobs-overview {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .admin-overview-card {
+        padding: 18px 20px;
+    }
+
+    .admin-jobs-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+
+    .admin-panel-compose {
+        max-width: 520px;
+    }
+
+    .admin-panel-compose .btn-primary {
+        max-width: none;
+    }
+
+    .admin-panel:last-child {
+        grid-column: 1 / -1;
+    }
     
     .nav-btn {
         width: auto;
@@ -207,6 +233,12 @@
     .store-item:hover {
         border-color: rgba(255,255,255,0.15);
         transform: translateY(-3px);
+    }
+}
+
+@media (max-width: 767px) {
+    .admin-jobs-overview {
+        grid-template-columns: 1fr;
     }
 }
 
