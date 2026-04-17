@@ -1285,15 +1285,21 @@
         openJobs.forEach(job => {
             const isHourly = job.type === 'hourly';
             const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
+            const rewardTone = job.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)';
             jList.innerHTML += `
-                <div class="list-item">
-                    <div class="list-col">
-                        <div class="item-title">${job.title} ${isHourly ? '<i class="fas fa-clock" style="color:var(--accent-blue);font-size:0.8em;margin-left:5px;"></i>' : ''}</div>
-                        <div class="item-sub">${isHourly ? 'Hourly Rate' : 'Fixed Reward'}: ${rateTxt}</div>
+                <div class="list-item job-card">
+                    <div class="job-card-head">
+                        <div class="item-title">${job.title}</div>
+                        ${isHourly ? '<div class="job-card-badge"><i class="fas fa-clock"></i> Hourly</div>' : '<div class="job-card-badge">Fixed</div>'}
                     </div>
-                    <button class="btn-primary ${isHourly ? '' : 'btn-card-action'}" style="width:auto; padding:8px 16px;" onclick="claimJob('${job.id}')">
-                        ${isHourly ? 'Clock In' : 'Claim'}
-                    </button>
+                    <div class="job-card-payout-label">${isHourly ? 'Hourly Rate' : 'Reward'}</div>
+                    <div class="job-card-payout" style="color:${rewardTone};">${rateTxt}</div>
+                    <div class="job-card-footer">
+                        <div class="job-card-note">${isHourly ? 'Start the timer when you begin.' : 'Complete it and send it for review.'}</div>
+                        <button class="btn-primary ${isHourly ? '' : 'btn-card-action'} job-card-btn" onclick="claimJob('${job.id}')">
+                            ${isHourly ? 'Clock In' : 'Claim'}
+                        </button>
+                    </div>
                 </div>`;
         });
         
@@ -1308,21 +1314,21 @@
         activeItems.forEach(item => {
             const canAfford = (item.currency === 'BB' ? currentUser.balanceBB : currentUser.balanceUSD) >= item.price;
             const typeIcon = item.type === 'persistent' ? 'fas fa-infinity' : 'fas fa-check-circle';
+            const priceTone = item.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)';
             
             storeContainer.innerHTML += `
-                <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="list-col">
-                            <div class="item-title">${item.name}</div>
-                            <div class="item-sub">${item.description}</div>
-                            <div class="item-sub" style="display:flex; gap:10px; align-items:center;">
-                                <span style="color:${item.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)'}">${formatMoney(item.price, item.currency)}</span>
-                                <span style="color:var(--text-muted);">|</span>
-                                <span style="color:var(--text-muted);"><i class="${typeIcon}" style="font-size:0.8em;"></i> ${item.type}</span>
-                            </div>
-                        </div>
-                        <button class="btn-primary ${canAfford ? '' : 'btn-card-action'}" onclick="openPurchaseModal('${item.id}')" ${canAfford ? '' : 'disabled'}>
-                            ${canAfford ? 'Buy' : 'Cannot Afford'}
+                <div class="list-item store-card">
+                    <div class="store-card-head">
+                        <div class="item-title">${item.name}</div>
+                        <div class="store-card-type"><i class="${typeIcon}"></i> ${item.type}</div>
+                    </div>
+                    <div class="item-sub store-card-desc">${item.description}</div>
+                    <div class="store-card-price-label">Price</div>
+                    <div class="store-card-price" style="color:${priceTone};">${formatMoney(item.price, item.currency)}</div>
+                    <div class="store-card-footer">
+                        <div class="store-card-note">${canAfford ? 'Ready to grab from the shop.' : 'You need a little more saved up.'}</div>
+                        <button class="btn-primary ${canAfford ? '' : 'btn-card-action'} store-card-btn" onclick="openPurchaseModal('${item.id}')" ${canAfford ? '' : 'disabled'}>
+                            ${canAfford ? 'Buy Now' : 'Cannot Afford'}
                         </button>
                     </div>
                 </div>`;

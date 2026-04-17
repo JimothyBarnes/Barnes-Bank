@@ -240,6 +240,22 @@
     .admin-jobs-overview {
         grid-template-columns: 1fr;
     }
+
+    .job-card-footer {
+        align-items: stretch;
+    }
+
+    .job-card-btn {
+        width: 100%;
+    }
+
+    .store-card-footer {
+        align-items: stretch;
+    }
+
+    .store-card-btn {
+        width: 100%;
+    }
 }
 
 /* Large Desktop */
