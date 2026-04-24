@@ -45,10 +45,12 @@
             <div class="card-balance card-bb">
                 <div class="card-label">Barnes Bucks</div>
                 <div class="card-amt"><span id="kid-bal-bb">0</span><span class="card-curr curr-bb">BB</span></div>
+                <div class="balance-breakdown" id="kid-bal-breakdown-bb"></div>
             </div>
             <div class="card-balance card-usd">
                 <div class="card-label">USD Dollars</div>
                 <div class="card-amt"><span class="card-curr curr-usd">$</span><span id="kid-bal-usd">0.00</span></div>
+                <div class="balance-breakdown" id="kid-bal-breakdown-usd"></div>
             </div>
         </div>
         
@@ -75,6 +77,7 @@
 
     <div id="view-kid-send" class="view">
         <div class="section-title">Transfer Funds</div>
+        <p style="color:var(--text-muted); margin-top:-4px; margin-bottom:16px;">Transfers use your spending balance.</p>
         <select id="transfer-to"></select>
         <div class="row-inputs">
             <select id="transfer-currency" style="flex: 1;">
@@ -214,7 +217,7 @@
 
 <!-- Edit Account Modal -->
 <div id="edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:520px;">
         <h2 style="margin:0 0 20px; color:var(--text-main);">Edit Account</h2>
         <input type="text" id="edit-name" placeholder="Display Name">
         <input type="text" id="edit-user" placeholder="Username" autocapitalize="none">
@@ -224,6 +227,46 @@
             <div class="row-inputs">
                 <input type="number" id="edit-rate-bb" placeholder="BB Rate" style="flex:1;">
                 <input type="number" id="edit-rate-usd" placeholder="USD Rate" style="flex:1;">
+            </div>
+        </div>
+        <div class="allocation-editor">
+            <div class="allocation-editor-head">
+                <div style="font-size:0.8rem; color:var(--text-muted);">Earnings Split</div>
+                <div class="allocation-editor-note">Each currency must total 100%</div>
+            </div>
+            <div class="allocation-section">
+                <div class="allocation-section-title">Barnes Bucks</div>
+                <div class="allocation-grid">
+                    <label class="allocation-field">
+                        <span>Spending</span>
+                        <input type="number" id="edit-alloc-bb-spending" min="0" max="100" step="1" placeholder="%">
+                    </label>
+                    <label class="allocation-field">
+                        <span>Savings</span>
+                        <input type="number" id="edit-alloc-bb-savings" min="0" max="100" step="1" placeholder="%">
+                    </label>
+                    <label class="allocation-field">
+                        <span>Giving</span>
+                        <input type="number" id="edit-alloc-bb-giving" min="0" max="100" step="1" placeholder="%">
+                    </label>
+                </div>
+            </div>
+            <div class="allocation-section">
+                <div class="allocation-section-title">US Dollars</div>
+                <div class="allocation-grid">
+                    <label class="allocation-field">
+                        <span>Spending</span>
+                        <input type="number" id="edit-alloc-usd-spending" min="0" max="100" step="1" placeholder="%">
+                    </label>
+                    <label class="allocation-field">
+                        <span>Savings</span>
+                        <input type="number" id="edit-alloc-usd-savings" min="0" max="100" step="1" placeholder="%">
+                    </label>
+                    <label class="allocation-field">
+                        <span>Giving</span>
+                        <input type="number" id="edit-alloc-usd-giving" min="0" max="100" step="1" placeholder="%">
+                    </label>
+                </div>
             </div>
         </div>
         <div style="display:flex; gap:10px; margin-top:20px;">
@@ -299,6 +342,25 @@
     </div>
 </div>
 
+<!-- Manual Adjust Modal -->
+<div id="manual-adjust-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:460px;">
+        <h2 id="manual-adjust-title" style="margin:0 0 8px; color:var(--text-main);">Adjust Funds</h2>
+        <div id="manual-adjust-subtitle" style="color:var(--text-muted); margin-bottom:18px;"></div>
+        <div class="row-inputs">
+            <input type="number" id="manual-adjust-amount" min="0" step="0.01" placeholder="Amount" style="flex:1;" oninput="updateManualAdjustPreview()">
+            <input type="text" id="manual-adjust-currency" disabled style="flex:0.6; opacity:0.7;">
+        </div>
+        <select id="manual-adjust-bucket" onchange="updateManualAdjustPreview()"></select>
+        <input type="text" id="manual-adjust-note" placeholder="Memo for ledger">
+        <div class="admin-allocation-preview" id="manual-adjust-preview" style="margin-top:12px;"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeManualAdjustModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" id="manual-adjust-submit" onclick="submitManualAdjust()" style="flex:1;">Save Adjustment</button>
+        </div>
+    </div>
+</div>
+
 <!-- Purchase Confirmation Modal -->
 <div id="purchase-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
     <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:400px;">
@@ -355,6 +417,8 @@
                 // Ensure admin user exists
                 if (!dbData.users.find(u => u.id === 'admin')) {
                     dbData.users.push({ id: 'admin', name: 'Parents', pass: 'parent', role: 'admin', balanceBB: 0, balanceUSD: 0 });
+                }
+                if (normalizeUsers()) {
                     await saveDB();
                 }
             } else {
@@ -367,6 +431,7 @@
                     storeItems: [],
                     purchases: []
                 };
+                normalizeUsers();
                 await saveDB();
             }
         } catch (error) {
@@ -382,6 +447,296 @@
             return curr === 'USD' ? '$0.00' : '0.00 BB';
         }
         return curr === 'USD' ? `$${parseFloat(amt).toFixed(2)}` : `${parseFloat(amt).toFixed(2)} BB`; 
+    }
+    const MONEY_BUCKETS = ['spending', 'savings', 'giving'];
+    const DEFAULT_ALLOCATION = { spending: 50, savings: 40, giving: 10 };
+
+    function cloneDefaultAllocation() {
+        return { ...DEFAULT_ALLOCATION };
+    }
+
+    function defaultBuckets(total = 0) {
+        return { spending: parseFloat(total) || 0, savings: 0, giving: 0 };
+    }
+
+    function roundMoney(value) {
+        return Math.round((parseFloat(value) || 0) * 100) / 100;
+    }
+
+    function sumBucketValues(buckets) {
+        return roundMoney(MONEY_BUCKETS.reduce((sum, key) => sum + (parseFloat(buckets?.[key]) || 0), 0));
+    }
+
+    function getCurrencyKeys(currency) {
+        return currency === 'USD'
+            ? { balanceKey: 'balanceUSD', bucketsKey: 'usdBuckets', allocationKey: 'allocationUSD' }
+            : { balanceKey: 'balanceBB', bucketsKey: 'bbBuckets', allocationKey: 'allocationBB' };
+    }
+
+    function ensureUserMoneyModel(user) {
+        if (!user) return false;
+
+        let changed = false;
+        user.balanceBB = roundMoney(user.balanceBB || 0);
+        user.balanceUSD = roundMoney(user.balanceUSD || 0);
+
+        [
+            { currency: 'BB', total: user.balanceBB },
+            { currency: 'USD', total: user.balanceUSD }
+        ].forEach(({ currency, total }) => {
+            const { balanceKey, bucketsKey, allocationKey } = getCurrencyKeys(currency);
+
+            if (!user[bucketsKey]) {
+                user[bucketsKey] = defaultBuckets(total);
+                changed = true;
+            }
+
+            MONEY_BUCKETS.forEach(bucket => {
+                const normalized = roundMoney(user[bucketsKey][bucket] || 0);
+                if (user[bucketsKey][bucket] !== normalized) {
+                    user[bucketsKey][bucket] = normalized;
+                    changed = true;
+                }
+            });
+
+            if (!user[allocationKey]) {
+                user[allocationKey] = cloneDefaultAllocation();
+                changed = true;
+            }
+
+            MONEY_BUCKETS.forEach(bucket => {
+                if (typeof user[allocationKey][bucket] !== 'number') {
+                    user[allocationKey][bucket] = DEFAULT_ALLOCATION[bucket];
+                    changed = true;
+                }
+            });
+
+            const bucketTotal = sumBucketValues(user[bucketsKey]);
+            if (roundMoney(user[balanceKey]) !== bucketTotal) {
+                user[balanceKey] = bucketTotal;
+                changed = true;
+            }
+        });
+
+        return changed;
+    }
+
+    function normalizeUsers() {
+        if (!dbData.users) return false;
+        let changed = false;
+        dbData.users.forEach(user => {
+            if (ensureUserMoneyModel(user)) changed = true;
+        });
+        return changed;
+    }
+
+    function setBucketTotal(user, currency) {
+        const { balanceKey, bucketsKey } = getCurrencyKeys(currency);
+        user[balanceKey] = sumBucketValues(user[bucketsKey]);
+    }
+
+    function allocateEarnings(user, currency, amount) {
+        ensureUserMoneyModel(user);
+        const payout = roundMoney(amount);
+        const { bucketsKey, allocationKey } = getCurrencyKeys(currency);
+        const allocation = user[allocationKey];
+
+        const spending = roundMoney(payout * (allocation.spending / 100));
+        const savings = roundMoney(payout * (allocation.savings / 100));
+        const giving = roundMoney(payout - spending - savings);
+
+        user[bucketsKey].spending = roundMoney(user[bucketsKey].spending + spending);
+        user[bucketsKey].savings = roundMoney(user[bucketsKey].savings + savings);
+        user[bucketsKey].giving = roundMoney(user[bucketsKey].giving + giving);
+        setBucketTotal(user, currency);
+
+        return { spending, savings, giving };
+    }
+
+    function updateBucketBalance(user, currency, bucket, delta) {
+        ensureUserMoneyModel(user);
+        const { bucketsKey } = getCurrencyKeys(currency);
+        user[bucketsKey][bucket] = roundMoney((user[bucketsKey][bucket] || 0) + delta);
+        setBucketTotal(user, currency);
+    }
+
+    function getSpendingBalance(user, currency) {
+        ensureUserMoneyModel(user);
+        const { bucketsKey } = getCurrencyKeys(currency);
+        return roundMoney(user[bucketsKey].spending);
+    }
+
+    function getBucketBalance(user, currency, bucket) {
+        ensureUserMoneyModel(user);
+        const { bucketsKey } = getCurrencyKeys(currency);
+        return roundMoney(user[bucketsKey][bucket] || 0);
+    }
+
+    function formatBucketLabel(bucket) {
+        return bucket.charAt(0).toUpperCase() + bucket.slice(1);
+    }
+
+    function parseAllocationInputs(prefix) {
+        return {
+            spending: parseFloat(document.getElementById(`${prefix}-spending`).value),
+            savings: parseFloat(document.getElementById(`${prefix}-savings`).value),
+            giving: parseFloat(document.getElementById(`${prefix}-giving`).value)
+        };
+    }
+
+    function isValidAllocation(allocation) {
+        return MONEY_BUCKETS.every(bucket => !isNaN(allocation[bucket]) && allocation[bucket] >= 0) &&
+            roundMoney(MONEY_BUCKETS.reduce((sum, bucket) => sum + allocation[bucket], 0)) === 100;
+    }
+
+    function formatAllocationSummary(allocation) {
+        return MONEY_BUCKETS.map(bucket => `${formatBucketLabel(bucket)} ${roundMoney(allocation[bucket])}%`).join(' • ');
+    }
+
+    function getAllocationPreview(currency, amount, allocation) {
+        const payout = roundMoney(amount);
+        const spending = roundMoney(payout * (allocation.spending / 100));
+        const savings = roundMoney(payout * (allocation.savings / 100));
+        const giving = roundMoney(payout - spending - savings);
+
+        return [
+            `Spending ${formatMoney(spending, currency)}`,
+            `Savings ${formatMoney(savings, currency)}`,
+            `Giving ${formatMoney(giving, currency)}`
+        ].join(' • ');
+    }
+
+    function updateApprovalPreview(jobId) {
+        const job = dbData.jobs.find(j => j.id === jobId);
+        if (!job || !job.claimedBy) return;
+
+        const worker = dbData.users.find(u => u.id === job.claimedBy);
+        const input = document.getElementById(`payout-${jobId}`);
+        const preview = document.getElementById(`approval-preview-${jobId}`);
+        if (!worker || !input || !preview) return;
+
+        ensureUserMoneyModel(worker);
+        const finalAmt = parseFloat(input.value);
+        if (isNaN(finalAmt) || finalAmt <= 0) {
+            preview.innerText = 'Enter a payout to preview the split.';
+            return;
+        }
+
+        const allocation = job.currency === 'BB' ? worker.allocationBB : worker.allocationUSD;
+        preview.innerText = getAllocationPreview(job.currency, finalAmt, allocation);
+    }
+
+    let currentManualAdjustment = null;
+
+    function openManualAdjustModal(userId, curr, dir) {
+        const user = dbData.users.find(u => u.id === userId);
+        if (!user) return;
+        ensureUserMoneyModel(user);
+
+        currentManualAdjustment = { userId, curr, dir };
+
+        const title = dir > 0 ? `Add ${curr} Funds` : `Deduct ${curr} Funds`;
+        const subtitle = dir > 0
+            ? `Choose how ${user.name}'s ${curr} credit should be allocated.`
+            : `Choose which ${curr} bucket to deduct from for ${user.name}.`;
+        const select = document.getElementById('manual-adjust-bucket');
+
+        document.getElementById('manual-adjust-title').innerText = title;
+        document.getElementById('manual-adjust-subtitle').innerText = subtitle;
+        document.getElementById('manual-adjust-currency').value = curr;
+        document.getElementById('manual-adjust-amount').value = '';
+        document.getElementById('manual-adjust-note').value = '';
+        document.getElementById('manual-adjust-submit').innerText = dir > 0 ? 'Add Funds' : 'Deduct Funds';
+
+        const options = dir > 0
+            ? [
+                { value: 'default', label: 'Use Default Split' },
+                { value: 'spending', label: 'Spending Only' },
+                { value: 'savings', label: 'Savings Only' },
+                { value: 'giving', label: 'Giving Only' }
+            ]
+            : [
+                { value: 'spending', label: 'Spending' },
+                { value: 'savings', label: 'Savings' },
+                { value: 'giving', label: 'Giving' }
+            ];
+
+        select.innerHTML = options.map(option => `<option value="${option.value}">${option.label}</option>`).join('');
+        select.value = dir > 0 ? 'default' : 'spending';
+
+        document.getElementById('manual-adjust-modal').style.display = 'flex';
+        updateManualAdjustPreview();
+    }
+
+    function closeManualAdjustModal() {
+        document.getElementById('manual-adjust-modal').style.display = 'none';
+        currentManualAdjustment = null;
+    }
+
+    function updateManualAdjustPreview() {
+        const preview = document.getElementById('manual-adjust-preview');
+        if (!currentManualAdjustment || !preview) return;
+
+        const user = dbData.users.find(u => u.id === currentManualAdjustment.userId);
+        if (!user) return;
+        ensureUserMoneyModel(user);
+
+        const bucket = document.getElementById('manual-adjust-bucket').value;
+        const amount = parseFloat(document.getElementById('manual-adjust-amount').value);
+        const actionLabel = currentManualAdjustment.dir > 0 ? 'credit' : 'deduction';
+        const allocation = currentManualAdjustment.curr === 'BB' ? user.allocationBB : user.allocationUSD;
+
+        if (isNaN(amount) || amount <= 0) {
+            preview.innerText = currentManualAdjustment.dir > 0
+                ? `This ${actionLabel} will follow ${bucket === 'default' ? 'the default split' : `${formatBucketLabel(bucket)} only`}.`
+                : `This deduction will come from ${formatBucketLabel(bucket)}.`;
+            return;
+        }
+
+        if (currentManualAdjustment.dir > 0 && bucket === 'default') {
+            preview.innerText = getAllocationPreview(currentManualAdjustment.curr, amount, allocation);
+            return;
+        }
+
+        const available = getBucketBalance(user, currentManualAdjustment.curr, bucket);
+        const movementText = currentManualAdjustment.dir > 0
+            ? `${formatMoney(amount, currentManualAdjustment.curr)} to ${formatBucketLabel(bucket)}`
+            : `${formatMoney(amount, currentManualAdjustment.curr)} from ${formatBucketLabel(bucket)} • Available ${formatMoney(available, currentManualAdjustment.curr)}`;
+        preview.innerText = movementText;
+    }
+
+    function submitManualAdjust() {
+        if (!currentManualAdjustment) return;
+
+        const user = dbData.users.find(u => u.id === currentManualAdjustment.userId);
+        if (!user) return;
+        ensureUserMoneyModel(user);
+
+        const amt = parseFloat(document.getElementById('manual-adjust-amount').value);
+        const bucket = document.getElementById('manual-adjust-bucket').value;
+        const reason = document.getElementById('manual-adjust-note').value.trim() || 'Manual Adjustment';
+
+        if (isNaN(amt) || amt <= 0) return showToast("Invalid amount");
+
+        if (currentManualAdjustment.dir > 0) {
+            if (bucket === 'default') {
+                allocateEarnings(user, currentManualAdjustment.curr, amt);
+            } else {
+                updateBucketBalance(user, currentManualAdjustment.curr, bucket, amt);
+            }
+            logTransaction(user.id, 'credit', amt, currentManualAdjustment.curr, reason);
+        } else {
+            const available = getBucketBalance(user, currentManualAdjustment.curr, bucket);
+            if (available < amt) return showToast(`Not enough in ${formatBucketLabel(bucket).toLowerCase()}`);
+
+            updateBucketBalance(user, currentManualAdjustment.curr, bucket, -amt);
+            logTransaction(user.id, 'debit', amt, currentManualAdjustment.curr, reason);
+        }
+
+        saveDB();
+        closeManualAdjustModal();
+        renderAdminData();
+        showToast(`${currentManualAdjustment.dir > 0 ? 'Updated' : 'Reduced'} ${user.name}'s ${currentManualAdjustment.curr} balance`);
     }
 
     // --- UI HELPERS ---
@@ -437,7 +792,10 @@
         if (!currentUser || !dbData.users) return;
 
         const latestUser = dbData.users.find(u => u.id === currentUser.id);
-        if (latestUser) currentUser = latestUser;
+        if (latestUser) {
+            ensureUserMoneyModel(latestUser);
+            currentUser = latestUser;
+        }
     }
 
     // --- REAL-TIME LISTENERS ---
@@ -489,6 +847,7 @@
     function openEditModal(userId) {
         currentEditingUser = dbData.users.find(u => u.id === userId);
         if (!currentEditingUser) return;
+        ensureUserMoneyModel(currentEditingUser);
 
         // Populate modal with current user data
         document.getElementById('edit-name').value = currentEditingUser.name;
@@ -496,6 +855,12 @@
         document.getElementById('edit-pass').value = '';
         document.getElementById('edit-rate-bb').value = currentEditingUser.defaultHourlyRateBB || 5;
         document.getElementById('edit-rate-usd').value = currentEditingUser.defaultHourlyRateUSD || 3;
+        document.getElementById('edit-alloc-bb-spending').value = currentEditingUser.allocationBB.spending;
+        document.getElementById('edit-alloc-bb-savings').value = currentEditingUser.allocationBB.savings;
+        document.getElementById('edit-alloc-bb-giving').value = currentEditingUser.allocationBB.giving;
+        document.getElementById('edit-alloc-usd-spending').value = currentEditingUser.allocationUSD.spending;
+        document.getElementById('edit-alloc-usd-savings').value = currentEditingUser.allocationUSD.savings;
+        document.getElementById('edit-alloc-usd-giving').value = currentEditingUser.allocationUSD.giving;
         
         // Show modal
         document.getElementById('edit-modal').style.display = 'flex';
@@ -514,6 +879,8 @@
         const newPassword = document.getElementById('edit-pass').value;
         const newRateBB = parseFloat(document.getElementById('edit-rate-bb').value);
         const newRateUSD = parseFloat(document.getElementById('edit-rate-usd').value);
+        const newAllocationBB = parseAllocationInputs('edit-alloc-bb');
+        const newAllocationUSD = parseAllocationInputs('edit-alloc-usd');
 
         // Validation
         if (!newName || !newUsername) {
@@ -522,6 +889,14 @@
         }
         if (isNaN(newRateBB) || newRateBB <= 0 || isNaN(newRateUSD) || newRateUSD <= 0) {
             showToast("Valid hourly rates are required");
+            return;
+        }
+        if (!isValidAllocation(newAllocationBB)) {
+            showToast("BB split must total 100%");
+            return;
+        }
+        if (!isValidAllocation(newAllocationUSD)) {
+            showToast("USD split must total 100%");
             return;
         }
 
@@ -541,6 +916,8 @@
             dbData.users[userIndex].id = newUsername;
             dbData.users[userIndex].defaultHourlyRateBB = newRateBB;
             dbData.users[userIndex].defaultHourlyRateUSD = newRateUSD;
+            dbData.users[userIndex].allocationBB = newAllocationBB;
+            dbData.users[userIndex].allocationUSD = newAllocationUSD;
             
             // Update password only if provided
             if (newPassword) {
@@ -571,6 +948,10 @@
                     currentUser.id = newUsername;
                     currentUser.name = newName;
                 }
+            }
+
+            if (currentUser && currentUser.id === newUsername) {
+                currentUser = dbData.users[userIndex];
             }
 
             saveDB();
@@ -775,9 +1156,7 @@
         // Calculate earnings based on selected currency
         const earnings = (session.duration / 60) * (currency === 'BB' ? session.rateBB : session.rateUSD);
         
-        // Update user balance
-        const balKey = currency === 'BB' ? 'balanceBB' : 'balanceUSD';
-        user[balKey] += earnings;
+        allocateEarnings(user, currency, earnings);
         
         // Update session
         session.status = 'approved';
@@ -789,7 +1168,7 @@
         
         saveDB();
         renderAdminData();
-        showToast(`Approved ${user.name}'s session: ${formatMoney(earnings, currency)}`);
+        showToast(`Approved ${user.name}: ${formatMoney(earnings, currency)} split across buckets`);
     }
 
     function rejectTimeSession(sessionId) {
@@ -962,10 +1341,10 @@
             return;
         }
 
-        // Check if user can afford it
-        const userBalance = item.currency === 'BB' ? currentUser.balanceBB : currentUser.balanceUSD;
+        // Check if user can afford it from spending
+        const userBalance = getSpendingBalance(currentUser, item.currency);
         if (userBalance < item.price) {
-            showToast("Insufficient balance!");
+            showToast("Insufficient spending balance!");
             return;
         }
 
@@ -982,7 +1361,7 @@
                     <span style="font-weight:600; color:${item.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)'}">${formatMoney(item.price, item.currency)}</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                    <span>Your Balance:</span>
+                    <span>Spending Balance:</span>
                     <span style="color:var(--text-muted);">${formatMoney(userBalance, item.currency)}</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
@@ -1019,13 +1398,10 @@
             return;
         }
 
-        // Deduct from user balance
-        const balKey = currentPurchaseItem.currency === 'BB' ? 'balanceBB' : 'balanceUSD';
         const deductionAmount = currentPurchaseItem.price;
-        console.log("About to deduct:", deductionAmount, "from", balKey);
+        console.log("About to deduct:", deductionAmount, "from spending bucket");
         
-        // Update currentUser object
-        currentUser[balKey] -= deductionAmount;
+        updateBucketBalance(currentUser, currentPurchaseItem.currency, 'spending', -deductionAmount);
         console.log("currentUser after deduction:", currentUser);
         console.log("currentUser balanceBB after:", currentUser.balanceBB);
         console.log("currentUser balanceUSD after:", currentUser.balanceUSD);
@@ -1033,7 +1409,7 @@
         // Also update the user in dbData.users array to ensure persistence
         const userIndex = dbData.users.findIndex(u => u.id === currentUser.id);
         if (userIndex !== -1) {
-            dbData.users[userIndex][balKey] = currentUser[balKey];
+            dbData.users[userIndex] = currentUser;
             console.log("Updated user in dbData.users array:", dbData.users[userIndex]);
         }
 
@@ -1116,21 +1492,21 @@
         if (!toId) return showToast("Select a recipient");
         if (isNaN(amt) || amt <= 0) return showToast("Enter a valid amount");
         
-        const balKey = curr === 'USD' ? 'balanceUSD' : 'balanceBB';
-        if (currentUser[balKey] < amt) return showToast("Insufficient funds");
+        const senderSpending = getSpendingBalance(currentUser, curr);
+        if (senderSpending < amt) return showToast("Insufficient spending funds");
 
-        currentUser[balKey] -= amt;
-        recipient[balKey] += amt;
+        updateBucketBalance(currentUser, curr, 'spending', -amt);
+        updateBucketBalance(recipient, curr, 'spending', amt);
         
         // Also update both users in dbData.users array to ensure persistence
         const senderIndex = dbData.users.findIndex(u => u.id === currentUser.id);
         const recipientIndex = dbData.users.findIndex(u => u.id === recipient.id);
         
         if (senderIndex !== -1) {
-            dbData.users[senderIndex][balKey] = currentUser[balKey];
+            dbData.users[senderIndex] = currentUser;
         }
         if (recipientIndex !== -1) {
-            dbData.users[recipientIndex][balKey] = recipient[balKey];
+            dbData.users[recipientIndex] = recipient;
         }
         
         logTransaction(currentUser.id, 'debit', amt, curr, `Sent to ${recipient.name}: ${note}`);
@@ -1146,6 +1522,7 @@
         // Users View
         const uList = document.getElementById('admin-user-list');
         uList.innerHTML = '';
+        normalizeUsers();
         dbData.users.filter(u => u.role === 'kid').forEach(u => {
             uList.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:12px; align-items:stretch;">
@@ -1156,15 +1533,15 @@
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div class="item-amt" style="color:var(--gold)">${formatMoney(u.balanceBB, 'BB')}</div>
                         <div>
-                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="manualAdjust('${u.id}', 'BB', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
-                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="manualAdjust('${u.id}', 'BB', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="openManualAdjustModal('${u.id}', 'BB', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
+                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="openManualAdjustModal('${u.id}', 'BB', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div class="item-amt" style="color:var(--usd-green)">$${u.balanceUSD.toFixed(2)}</div>
                         <div>
-                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="manualAdjust('${u.id}', 'USD', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
-                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="manualAdjust('${u.id}', 'USD', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="openManualAdjustModal('${u.id}', 'USD', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
+                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="openManualAdjustModal('${u.id}', 'USD', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
@@ -1177,6 +1554,16 @@
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div class="item-sub" style="color:var(--usd-green);">$${u.defaultHourlyRateUSD || 3}/hr</div>
                         <button class="btn-icon" onclick="editDefaultRate('${u.id}', 'USD')" style="background:var(--surface-light); width:24px;height:24px;"><i class="fas fa-edit" style="font-size:10px;"></i></button>
+                    </div>
+                    <div class="admin-allocation-summary">
+                        <div class="admin-allocation-row">
+                            <span class="admin-allocation-currency admin-allocation-currency-bb">BB Split</span>
+                            <span>${formatAllocationSummary(u.allocationBB)}</span>
+                        </div>
+                        <div class="admin-allocation-row">
+                            <span class="admin-allocation-currency admin-allocation-currency-usd">USD Split</span>
+                            <span>${formatAllocationSummary(u.allocationUSD)}</span>
+                        </div>
                     </div>
                 </div>`;
         });
@@ -1229,6 +1616,7 @@
             const worker = dbData.users.find(u => u.id === session.userId);
             const earningsBB = ((session.duration / 60) * session.rateBB).toFixed(2);
             const earningsUSD = ((session.duration / 60) * session.rateUSD).toFixed(2);
+            ensureUserMoneyModel(worker);
             
             approvalQueue.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:10px; align-items:stretch;">
@@ -1244,6 +1632,10 @@
                             <span style="color:var(--gold);">${earningsBB} BB</span> | 
                             <span style="color:var(--usd-green);">$${earningsUSD}</span>
                         </div>
+                    </div>
+                    <div class="admin-allocation-preview">
+                        <div><span class="admin-allocation-currency admin-allocation-currency-bb">If paid in BB</span> ${getAllocationPreview('BB', earningsBB, worker.allocationBB)}</div>
+                        <div><span class="admin-allocation-currency admin-allocation-currency-usd">If paid in USD</span> ${getAllocationPreview('USD', earningsUSD, worker.allocationUSD)}</div>
                     </div>
                     <div class="row-inputs approval-actions" style="margin:0; align-items:center;">
                         <button class="btn-primary btn-gold" style="width:auto; padding:12px 20px;" onclick="approveTimeSession('${session.id}', 'BB')">Approve as BB</button>
@@ -1263,6 +1655,7 @@
                 suggestedPayout = parseFloat((durationHours * j.rate).toFixed(2));
                 timeStr = `${formatDuration(durationMinutes)} worked`;
             }
+            ensureUserMoneyModel(worker);
 
             approvalQueue.innerHTML += `
                 <div class="list-item" style="flex-direction:column; gap:12px; align-items:stretch;">
@@ -1279,8 +1672,11 @@
                             ${j.currency === 'BB' ? `${suggestedPayout.toFixed(2)} BB` : `$${suggestedPayout.toFixed(2)}`}
                         </div>
                     </div>
+                    <div class="admin-allocation-preview">
+                        <div><span class="admin-allocation-currency ${j.currency === 'BB' ? 'admin-allocation-currency-bb' : 'admin-allocation-currency-usd'}">${j.currency} Split</span> <span id="approval-preview-${j.id}">${getAllocationPreview(j.currency, suggestedPayout, j.currency === 'BB' ? worker.allocationBB : worker.allocationUSD)}</span></div>
+                    </div>
                     <div class="row-inputs approval-actions" style="margin:0; align-items:center;">
-                        <input type="number" id="payout-${j.id}" value="${suggestedPayout.toFixed(2)}" min="0" step="0.01" placeholder="Final payout">
+                        <input type="number" id="payout-${j.id}" value="${suggestedPayout.toFixed(2)}" min="0" step="0.01" placeholder="Final payout" oninput="updateApprovalPreview('${j.id}')">
                         <button class="btn-primary" style="width:auto; padding:12px 20px;" onclick="approveJob('${j.id}')">Approve</button>
                         <button class="btn-primary btn-secondary" style="width:auto; padding:12px 20px;" onclick="returnJobToOpen('${j.id}')">Return</button>
                     </div>
@@ -1329,11 +1725,24 @@
         syncCurrentUserFromDB();
         if (!currentUser) return;
         updateHeaderUser();
+        ensureUserMoneyModel(currentUser);
 
         console.log("renderKidData called for:", currentUser.name);
         // Balances
         document.getElementById('kid-bal-bb').innerText = currentUser.balanceBB.toFixed(2);
         document.getElementById('kid-bal-usd').innerText = currentUser.balanceUSD.toFixed(2);
+        document.getElementById('kid-bal-breakdown-bb').innerHTML = MONEY_BUCKETS.map(bucket => `
+            <div class="balance-breakdown-row">
+                <span class="balance-breakdown-label">${bucket.charAt(0).toUpperCase() + bucket.slice(1)}</span>
+                <span class="balance-breakdown-value">${formatMoney(currentUser.bbBuckets[bucket], 'BB')}</span>
+            </div>
+        `).join('');
+        document.getElementById('kid-bal-breakdown-usd').innerHTML = MONEY_BUCKETS.map(bucket => `
+            <div class="balance-breakdown-row">
+                <span class="balance-breakdown-label">${bucket.charAt(0).toUpperCase() + bucket.slice(1)}</span>
+                <span class="balance-breakdown-value">${formatMoney(currentUser.usdBuckets[bucket], 'USD')}</span>
+            </div>
+        `).join('');
         
         // Active Shifts - Jobs and General Time
         const shiftContainer = document.getElementById('kid-active-shifts');
@@ -1439,7 +1848,7 @@
         if(activeItems.length === 0) storeContainer.innerHTML = '<p style="color:var(--text-muted);">No items available in the store.</p>';
         
         activeItems.forEach(item => {
-            const canAfford = (item.currency === 'BB' ? currentUser.balanceBB : currentUser.balanceUSD) >= item.price;
+            const canAfford = getSpendingBalance(currentUser, item.currency) >= item.price;
             const typeIcon = item.type === 'persistent' ? 'fas fa-infinity' : 'fas fa-check-circle';
             const priceTone = item.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)';
             
@@ -1453,7 +1862,7 @@
                     <div class="store-card-price-label">Price</div>
                     <div class="store-card-price" style="color:${priceTone};">${formatMoney(item.price, item.currency)}</div>
                     <div class="store-card-footer">
-                        <div class="store-card-note">${canAfford ? 'Ready to grab from the shop.' : 'You need a little more saved up.'}</div>
+                        <div class="store-card-note">${canAfford ? 'Ready to buy with your spending balance.' : 'You need a little more in spending.'}</div>
                         <button class="btn-primary ${canAfford ? '' : 'btn-card-action'} store-card-btn" onclick="openPurchaseModal('${item.id}')" ${canAfford ? '' : 'disabled'}>
                             ${canAfford ? 'Buy Now' : 'Cannot Afford'}
                         </button>
@@ -1495,30 +1904,25 @@
         // Use username as display name (capitalize first letter)
         const name = id.charAt(0).toUpperCase() + id.slice(1);
         
-        dbData.users.push({ id, name, pass, role: 'kid', balanceBB: 0, balanceUSD: 0, defaultHourlyRateBB: 5, defaultHourlyRateUSD: 3 });
+        dbData.users.push({
+            id,
+            name,
+            pass,
+            role: 'kid',
+            balanceBB: 0,
+            balanceUSD: 0,
+            bbBuckets: defaultBuckets(),
+            usdBuckets: defaultBuckets(),
+            allocationBB: cloneDefaultAllocation(),
+            allocationUSD: cloneDefaultAllocation(),
+            defaultHourlyRateBB: 5,
+            defaultHourlyRateUSD: 3
+        });
         saveDB();
         
         document.getElementById('new-kid-user').value = '';
         document.getElementById('new-kid-pass').value = '';
         showToast("Account created"); renderAdminData();
-    }
-
-    function manualAdjust(userId, curr, dir) {
-        const amtStr = prompt(`Enter ${curr} amount to ${dir > 0 ? 'ADD' : 'DEDUCT'}:`);
-        if(!amtStr) return;
-        const amt = parseFloat(amtStr);
-        if(isNaN(amt) || amt <= 0) return showToast("Invalid amount");
-
-        const user = dbData.users.find(u => u.id === userId);
-        const reason = prompt("Enter memo for ledger:") || "Manual Adjustment";
-
-        const balKey = curr === 'USD' ? 'balanceUSD' : 'balanceBB';
-        if(dir < 0 && user[balKey] < amt) return showToast("Insufficient funds");
-
-        user[balKey] += (amt * dir);
-        logTransaction(userId, dir > 0 ? 'credit' : 'debit', amt, curr, reason);
-        saveDB();
-        renderAdminData();
     }
 
     function createJob() {
@@ -1545,13 +1949,12 @@
         
         if(isNaN(finalAmt) || finalAmt <= 0) return showToast("Invalid payout amount");
 
-        const balKey = job.currency === 'USD' ? 'balanceUSD' : 'balanceBB';
-        user[balKey] += finalAmt;
+        allocateEarnings(user, job.currency, finalAmt);
         
         job.status = 'completed';
         logTransaction(user.id, 'credit', finalAmt, job.currency, `Contract: ${job.title}`);
         saveDB();
-        showToast(`Paid ${user.name} ${formatMoney(finalAmt, job.currency)}`);
+        showToast(`Paid ${user.name} ${formatMoney(finalAmt, job.currency)} across buckets`);
         renderAdminData();
     }
 
