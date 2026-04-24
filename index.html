@@ -184,6 +184,10 @@
                 <option value="USD">Dollars (USD)</option>
             </select>
         </div>
+        <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; color:var(--text-muted); font-size:0.9rem;">
+            <input type="checkbox" id="edit-job-repeatable" style="width:auto; margin:0;">
+            Keep this job on the board after approval
+        </label>
         <input type="number" id="edit-job-reward" placeholder="Reward / Hourly Rate">
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-primary btn-secondary" onclick="closeEditJobModal()" style="flex:1;">Cancel</button>
@@ -207,6 +211,10 @@
                 <option value="USD">Dollars (USD)</option>
             </select>
         </div>
+        <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; color:var(--text-muted); font-size:0.9rem;">
+            <input type="checkbox" id="new-job-repeatable" style="width:auto; margin:0;">
+            Keep this job on the board after approval
+        </label>
         <input type="number" id="new-job-reward" placeholder="Reward / Hourly Rate">
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-primary btn-secondary" onclick="closeCreateJobModal()" style="flex:1;">Cancel</button>
@@ -349,7 +357,7 @@
         <div id="manual-adjust-subtitle" style="color:var(--text-muted); margin-bottom:18px;"></div>
         <div class="row-inputs">
             <input type="number" id="manual-adjust-amount" min="0" step="0.01" placeholder="Amount" style="flex:1;" oninput="updateManualAdjustPreview()">
-            <input type="text" id="manual-adjust-currency" disabled style="flex:0.6; opacity:0.7;">
+            <select id="manual-adjust-currency" style="flex:0.6;" onchange="updateManualAdjustPreview()"></select>
         </div>
         <select id="manual-adjust-bucket" onchange="updateManualAdjustPreview()"></select>
         <input type="text" id="manual-adjust-note" placeholder="Memo for ledger">
@@ -418,7 +426,7 @@
                 if (!dbData.users.find(u => u.id === 'admin')) {
                     dbData.users.push({ id: 'admin', name: 'Parents', pass: 'parent', role: 'admin', balanceBB: 0, balanceUSD: 0 });
                 }
-                if (normalizeUsers()) {
+                if (normalizeUsers() || normalizeJobs()) {
                     await saveDB();
                 }
             } else {
@@ -432,6 +440,7 @@
                     purchases: []
                 };
                 normalizeUsers();
+                normalizeJobs();
                 await saveDB();
             }
         } catch (error) {
@@ -526,6 +535,18 @@
         let changed = false;
         dbData.users.forEach(user => {
             if (ensureUserMoneyModel(user)) changed = true;
+        });
+        return changed;
+    }
+
+    function normalizeJobs() {
+        if (!dbData.jobs) return false;
+        let changed = false;
+        dbData.jobs.forEach(job => {
+            if (typeof job.repeatable !== 'boolean') {
+                job.repeatable = false;
+                changed = true;
+            }
         });
         return changed;
     }
@@ -627,26 +648,75 @@
     }
 
     let currentManualAdjustment = null;
+    const expandedAdminKids = {};
+
+    function getManualAdjustCurrency() {
+        return document.getElementById('manual-adjust-currency').value;
+    }
+
+    function toggleAdminKidCard(userId) {
+        expandedAdminKids[userId] = !expandedAdminKids[userId];
+        renderAdminData();
+    }
+
+    function openQuickDepositModal(userId) {
+        const user = dbData.users.find(u => u.id === userId);
+        if (!user) return;
+        ensureUserMoneyModel(user);
+
+        currentManualAdjustment = { userId, curr: 'BB', dir: 1, flexibleCurrency: true };
+        const bucketSelect = document.getElementById('manual-adjust-bucket');
+        const currencySelect = document.getElementById('manual-adjust-currency');
+
+        document.getElementById('manual-adjust-title').innerText = 'Deposit Funds';
+        document.getElementById('manual-adjust-subtitle').innerText = `Choose how to deposit funds into ${user.name}'s account.`;
+        document.getElementById('manual-adjust-amount').value = '';
+        document.getElementById('manual-adjust-note').value = '';
+        document.getElementById('manual-adjust-submit').innerText = 'Deposit Funds';
+
+        currencySelect.innerHTML = `
+            <option value="BB">BB</option>
+            <option value="USD">USD</option>
+        `;
+        currencySelect.value = 'BB';
+        currencySelect.disabled = false;
+        currencySelect.style.opacity = '1';
+
+        bucketSelect.innerHTML = [
+            { value: 'default', label: 'Use Default Split' },
+            { value: 'spending', label: 'Spending Only' },
+            { value: 'savings', label: 'Savings Only' },
+            { value: 'giving', label: 'Giving Only' }
+        ].map(option => `<option value="${option.value}">${option.label}</option>`).join('');
+        bucketSelect.value = 'default';
+
+        document.getElementById('manual-adjust-modal').style.display = 'flex';
+        updateManualAdjustPreview();
+    }
 
     function openManualAdjustModal(userId, curr, dir) {
         const user = dbData.users.find(u => u.id === userId);
         if (!user) return;
         ensureUserMoneyModel(user);
 
-        currentManualAdjustment = { userId, curr, dir };
+        currentManualAdjustment = { userId, curr, dir, flexibleCurrency: false };
 
         const title = dir > 0 ? `Add ${curr} Funds` : `Deduct ${curr} Funds`;
         const subtitle = dir > 0
             ? `Choose how ${user.name}'s ${curr} credit should be allocated.`
             : `Choose which ${curr} bucket to deduct from for ${user.name}.`;
         const select = document.getElementById('manual-adjust-bucket');
+        const currencySelect = document.getElementById('manual-adjust-currency');
 
         document.getElementById('manual-adjust-title').innerText = title;
         document.getElementById('manual-adjust-subtitle').innerText = subtitle;
-        document.getElementById('manual-adjust-currency').value = curr;
         document.getElementById('manual-adjust-amount').value = '';
         document.getElementById('manual-adjust-note').value = '';
         document.getElementById('manual-adjust-submit').innerText = dir > 0 ? 'Add Funds' : 'Deduct Funds';
+        currencySelect.innerHTML = `<option value="${curr}">${curr}</option>`;
+        currencySelect.value = curr;
+        currencySelect.disabled = true;
+        currencySelect.style.opacity = '0.7';
 
         const options = dir > 0
             ? [
@@ -681,10 +751,11 @@
         if (!user) return;
         ensureUserMoneyModel(user);
 
+        const currency = getManualAdjustCurrency();
         const bucket = document.getElementById('manual-adjust-bucket').value;
         const amount = parseFloat(document.getElementById('manual-adjust-amount').value);
         const actionLabel = currentManualAdjustment.dir > 0 ? 'credit' : 'deduction';
-        const allocation = currentManualAdjustment.curr === 'BB' ? user.allocationBB : user.allocationUSD;
+        const allocation = currency === 'BB' ? user.allocationBB : user.allocationUSD;
 
         if (isNaN(amount) || amount <= 0) {
             preview.innerText = currentManualAdjustment.dir > 0
@@ -694,14 +765,14 @@
         }
 
         if (currentManualAdjustment.dir > 0 && bucket === 'default') {
-            preview.innerText = getAllocationPreview(currentManualAdjustment.curr, amount, allocation);
+            preview.innerText = getAllocationPreview(currency, amount, allocation);
             return;
         }
 
-        const available = getBucketBalance(user, currentManualAdjustment.curr, bucket);
+        const available = getBucketBalance(user, currency, bucket);
         const movementText = currentManualAdjustment.dir > 0
-            ? `${formatMoney(amount, currentManualAdjustment.curr)} to ${formatBucketLabel(bucket)}`
-            : `${formatMoney(amount, currentManualAdjustment.curr)} from ${formatBucketLabel(bucket)} • Available ${formatMoney(available, currentManualAdjustment.curr)}`;
+            ? `${formatMoney(amount, currency)} to ${formatBucketLabel(bucket)}`
+            : `${formatMoney(amount, currency)} from ${formatBucketLabel(bucket)} • Available ${formatMoney(available, currency)}`;
         preview.innerText = movementText;
     }
 
@@ -712,6 +783,7 @@
         if (!user) return;
         ensureUserMoneyModel(user);
 
+        const currency = getManualAdjustCurrency();
         const amt = parseFloat(document.getElementById('manual-adjust-amount').value);
         const bucket = document.getElementById('manual-adjust-bucket').value;
         const reason = document.getElementById('manual-adjust-note').value.trim() || 'Manual Adjustment';
@@ -720,23 +792,23 @@
 
         if (currentManualAdjustment.dir > 0) {
             if (bucket === 'default') {
-                allocateEarnings(user, currentManualAdjustment.curr, amt);
+                allocateEarnings(user, currency, amt);
             } else {
-                updateBucketBalance(user, currentManualAdjustment.curr, bucket, amt);
+                updateBucketBalance(user, currency, bucket, amt);
             }
-            logTransaction(user.id, 'credit', amt, currentManualAdjustment.curr, reason);
+            logTransaction(user.id, 'credit', amt, currency, reason);
         } else {
-            const available = getBucketBalance(user, currentManualAdjustment.curr, bucket);
+            const available = getBucketBalance(user, currency, bucket);
             if (available < amt) return showToast(`Not enough in ${formatBucketLabel(bucket).toLowerCase()}`);
 
-            updateBucketBalance(user, currentManualAdjustment.curr, bucket, -amt);
-            logTransaction(user.id, 'debit', amt, currentManualAdjustment.curr, reason);
+            updateBucketBalance(user, currency, bucket, -amt);
+            logTransaction(user.id, 'debit', amt, currency, reason);
         }
 
         saveDB();
         closeManualAdjustModal();
         renderAdminData();
-        showToast(`${currentManualAdjustment.dir > 0 ? 'Updated' : 'Reduced'} ${user.name}'s ${currentManualAdjustment.curr} balance`);
+        showToast(`${currentManualAdjustment.dir > 0 ? 'Updated' : 'Reduced'} ${user.name}'s ${currency} balance`);
     }
 
     // --- UI HELPERS ---
@@ -1002,6 +1074,7 @@
         document.getElementById('edit-job-title').value = currentEditingJob.title;
         document.getElementById('edit-job-type').value = currentEditingJob.type;
         document.getElementById('edit-job-currency').value = currentEditingJob.currency;
+        document.getElementById('edit-job-repeatable').checked = !!currentEditingJob.repeatable;
         document.getElementById('edit-job-reward').value = currentEditingJob.rate;
         
         // Show modal
@@ -1027,6 +1100,7 @@
         const title = document.getElementById('edit-job-title').value.trim();
         const type = document.getElementById('edit-job-type').value;
         const currency = document.getElementById('edit-job-currency').value;
+        const repeatable = document.getElementById('edit-job-repeatable').checked;
         const rate = parseFloat(document.getElementById('edit-job-reward').value);
 
         // Validation
@@ -1041,6 +1115,7 @@
             dbData.jobs[jobIndex].title = title;
             dbData.jobs[jobIndex].type = type;
             dbData.jobs[jobIndex].currency = currency;
+            dbData.jobs[jobIndex].repeatable = repeatable;
             dbData.jobs[jobIndex].rate = rate;
 
             saveDB();
@@ -1524,45 +1599,115 @@
         uList.innerHTML = '';
         normalizeUsers();
         dbData.users.filter(u => u.role === 'kid').forEach(u => {
+            const recentTransactions = dbData.transactions.filter(tx => tx.userId === u.id).slice(0, 2);
+            const activeJobsCount = dbData.jobs.filter(job => job.claimedBy === u.id && (job.status === 'active' || job.status === 'pending')).length;
+            const pendingSessionsCount = (dbData.timeSessions || []).filter(session => session.userId === u.id && session.status === 'pending').length;
+            const statusBits = [];
+            if (activeJobsCount) statusBits.push(`${activeJobsCount} job${activeJobsCount === 1 ? '' : 's'} in motion`);
+            if (pendingSessionsCount) statusBits.push(`${pendingSessionsCount} review${pendingSessionsCount === 1 ? '' : 's'} waiting`);
+            if (!statusBits.length) statusBits.push('No active work right now');
+            const allocationCompactBB = `${roundMoney(u.allocationBB.spending)} / ${roundMoney(u.allocationBB.savings)} / ${roundMoney(u.allocationBB.giving)}`;
+            const allocationCompactUSD = `${roundMoney(u.allocationUSD.spending)} / ${roundMoney(u.allocationUSD.savings)} / ${roundMoney(u.allocationUSD.giving)}`;
+            const isExpanded = !!expandedAdminKids[u.id];
+
             uList.innerHTML += `
-                <div class="list-item" style="flex-direction:column; gap:12px; align-items:stretch;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
-                        <div style="font-weight:600;">${u.name}</div>
-                        <button class="btn-icon" onclick="openEditModal('${u.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="item-amt" style="color:var(--gold)">${formatMoney(u.balanceBB, 'BB')}</div>
-                        <div>
-                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="openManualAdjustModal('${u.id}', 'BB', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
-                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="openManualAdjustModal('${u.id}', 'BB', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                <div class="list-item admin-kid-card">
+                    <div class="admin-kid-card-summary">
+                        <div class="admin-kid-card-head">
+                            <div class="admin-kid-name">${u.name}</div>
+                            <div class="admin-kid-status">${statusBits.join(' • ')}</div>
+                        </div>
+                        <div class="admin-kid-total-pills">
+                            <div class="admin-kid-total-pill is-bb">${formatMoney(u.balanceBB, 'BB')}</div>
+                            <div class="admin-kid-total-pill is-usd">${formatMoney(u.balanceUSD, 'USD')}</div>
+                        </div>
+                        <div class="admin-kid-main-actions">
+                            <button class="btn-primary btn-green admin-kid-deposit-btn" onclick="openQuickDepositModal('${u.id}')">Deposit</button>
+                            <button class="btn-icon admin-kid-toggle ${isExpanded ? 'is-open' : ''}" onclick="toggleAdminKidCard('${u.id}')" aria-label="Toggle details">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
                         </div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="item-amt" style="color:var(--usd-green)">$${u.balanceUSD.toFixed(2)}</div>
-                        <div>
-                            <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="openManualAdjustModal('${u.id}', 'USD', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
-                            <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="openManualAdjustModal('${u.id}', 'USD', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+
+                    <div class="admin-kid-details ${isExpanded ? 'is-open' : ''}">
+                        <div class="admin-kid-detail-actions">
+                            <button class="btn-primary btn-secondary admin-kid-manage-btn" onclick="openEditModal('${u.id}')">Manage Account</button>
                         </div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
-                        <div style="font-size:0.8rem; color:var(--text-muted);">Default Rates</div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="item-sub" style="color:var(--gold);">${u.defaultHourlyRateBB || 5} BB/hr</div>
-                        <button class="btn-icon" onclick="editDefaultRate('${u.id}', 'BB')" style="background:var(--surface-light); width:24px;height:24px;"><i class="fas fa-edit" style="font-size:10px;"></i></button>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="item-sub" style="color:var(--usd-green);">$${u.defaultHourlyRateUSD || 3}/hr</div>
-                        <button class="btn-icon" onclick="editDefaultRate('${u.id}', 'USD')" style="background:var(--surface-light); width:24px;height:24px;"><i class="fas fa-edit" style="font-size:10px;"></i></button>
-                    </div>
-                    <div class="admin-allocation-summary">
-                        <div class="admin-allocation-row">
-                            <span class="admin-allocation-currency admin-allocation-currency-bb">BB Split</span>
-                            <span>${formatAllocationSummary(u.allocationBB)}</span>
+
+                        <div class="admin-kid-balance-grid">
+                            <div class="admin-kid-balance-card is-bb">
+                                <div class="admin-kid-balance-top">
+                                    <div class="admin-kid-balance-label">Barnes Bucks</div>
+                                    <div class="admin-kid-balance-value" style="color:var(--gold)">${formatMoney(u.balanceBB, 'BB')}</div>
+                                </div>
+                                <div class="admin-kid-bucket-list compact">
+                                    ${MONEY_BUCKETS.map(bucket => `
+                                        <div class="admin-kid-bucket-row">
+                                            <span>${formatBucketLabel(bucket)}</span>
+                                            <span>${formatMoney(u.bbBuckets[bucket], 'BB')}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="admin-kid-adjust-actions">
+                                    <span class="admin-kid-action-label">Quick Adjust</span>
+                                    <div>
+                                        <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="openManualAdjustModal('${u.id}', 'BB', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
+                                        <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="openManualAdjustModal('${u.id}', 'BB', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="admin-kid-balance-card is-usd">
+                                <div class="admin-kid-balance-top">
+                                    <div class="admin-kid-balance-label">US Dollars</div>
+                                    <div class="admin-kid-balance-value" style="color:var(--usd-green)">${formatMoney(u.balanceUSD, 'USD')}</div>
+                                </div>
+                                <div class="admin-kid-bucket-list compact">
+                                    ${MONEY_BUCKETS.map(bucket => `
+                                        <div class="admin-kid-bucket-row">
+                                            <span>${formatBucketLabel(bucket)}</span>
+                                            <span>${formatMoney(u.usdBuckets[bucket], 'USD')}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="admin-kid-adjust-actions">
+                                    <span class="admin-kid-action-label">Quick Adjust</span>
+                                    <div>
+                                        <button class="btn-icon btn-red" style="display:inline-flex; width:28px;height:28px;" onclick="openManualAdjustModal('${u.id}', 'USD', -1)"><i class="fas fa-minus" style="font-size:12px;"></i></button>
+                                        <button class="btn-icon btn-green" style="display:inline-flex; width:28px;height:28px;margin-left:5px;" onclick="openManualAdjustModal('${u.id}', 'USD', 1)"><i class="fas fa-plus" style="font-size:12px;"></i></button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="admin-allocation-row">
-                            <span class="admin-allocation-currency admin-allocation-currency-usd">USD Split</span>
-                            <span>${formatAllocationSummary(u.allocationUSD)}</span>
+
+                        <div class="admin-kid-summary">
+                            <div class="admin-kid-summary-row">
+                                <span>Split</span>
+                                <span><strong class="admin-allocation-currency admin-allocation-currency-bb">BB</strong> ${allocationCompactBB} <span class="admin-summary-divider">•</span> <strong class="admin-allocation-currency admin-allocation-currency-usd">USD</strong> ${allocationCompactUSD}</span>
+                            </div>
+                            <div class="admin-kid-summary-row">
+                                <span>Rates</span>
+                                <span>${u.defaultHourlyRateBB || 5} BB/hr <span class="admin-summary-divider">•</span> $${(u.defaultHourlyRateUSD || 3).toFixed(2)}/hr</span>
+                            </div>
+                            <div class="admin-kid-summary-row">
+                                <span>Activity</span>
+                                <span>${activeJobsCount} jobs <span class="admin-summary-divider">•</span> ${pendingSessionsCount} reviews</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-kid-info-card compact">
+                            <div class="admin-kid-info-title">Latest Activity</div>
+                            <div class="admin-kid-activity-list">
+                                ${recentTransactions.length ? recentTransactions.map(tx => `
+                                    <div class="admin-kid-activity-row">
+                                        <div>
+                                            <div class="admin-kid-activity-desc">${tx.desc}</div>
+                                            <div class="admin-kid-activity-date">${tx.date}</div>
+                                        </div>
+                                        <div class="admin-kid-activity-amt ${tx.currency === 'BB' ? 'is-bb' : 'is-usd'}">${tx.type === 'debit' ? '-' : '+'}${formatMoney(tx.amt, tx.currency)}</div>
+                                    </div>
+                                `).join('') : '<div class="admin-kid-activity-empty">No activity yet.</div>'}
+                            </div>
                         </div>
                     </div>
                 </div>`;
@@ -1581,6 +1726,7 @@
             const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
             const statusText = job.status === 'active' ? 'In Progress' : 'Open';
             const rewardTone = job.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)';
+            const metaLabel = `${isHourly ? 'Hourly Shift' : 'Fixed Contract'}${job.repeatable ? ' • Perpetual' : ''}`;
             
             jList.innerHTML += `
                 <div class="list-item admin-posted-job">
@@ -1590,7 +1736,7 @@
                                 <div class="item-title">${job.title}</div>
                                 <div class="admin-posted-job-status ${job.status === 'active' ? 'is-active' : ''}">${statusText}</div>
                             </div>
-                            <div class="admin-posted-job-meta">${isHourly ? 'Hourly Shift' : 'Fixed Contract'}</div>
+                            <div class="admin-posted-job-meta">${metaLabel}</div>
                             <div class="admin-posted-job-value" style="color:${rewardTone};">${rateTxt}</div>
                         </div>
                     </div>
@@ -1662,7 +1808,7 @@
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
                         <div class="list-col">
                             <div class="item-title">${j.title}</div>
-                            <div class="item-sub">${worker ? worker.name : 'Unknown user'} • ${j.type === 'hourly' ? 'Hourly Shift' : 'Fixed Contract'}</div>
+                            <div class="item-sub">${worker ? worker.name : 'Unknown user'} • ${j.type === 'hourly' ? 'Hourly Shift' : 'Fixed Contract'}${j.repeatable ? ' • Perpetual' : ''}</div>
                             <div class="item-sub">${timeStr}</div>
                         </div>
                         <div class="admin-queue-tag">Contract</div>
@@ -1822,16 +1968,21 @@
             const isHourly = job.type === 'hourly';
             const rateTxt = isHourly ? `${formatMoney(job.rate, job.currency)}/hr` : formatMoney(job.rate, job.currency);
             const rewardTone = job.currency === 'BB' ? 'var(--gold)' : 'var(--usd-green)';
+            const badgeLabel = isHourly ? '<div class="job-card-badge"><i class="fas fa-clock"></i> Hourly</div>' : '<div class="job-card-badge">Fixed</div>';
+            const repeatableBadge = job.repeatable ? '<div class="job-card-badge"><i class="fas fa-redo"></i> Perpetual</div>' : '';
             jList.innerHTML += `
                 <div class="list-item job-card">
                     <div class="job-card-head">
                         <div class="item-title">${job.title}</div>
-                        ${isHourly ? '<div class="job-card-badge"><i class="fas fa-clock"></i> Hourly</div>' : '<div class="job-card-badge">Fixed</div>'}
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                            ${badgeLabel}
+                            ${repeatableBadge}
+                        </div>
                     </div>
                     <div class="job-card-payout-label">${isHourly ? 'Hourly Rate' : 'Reward'}</div>
                     <div class="job-card-payout" style="color:${rewardTone};">${rateTxt}</div>
                     <div class="job-card-footer">
-                        <div class="job-card-note">${isHourly ? 'Start the timer when you begin.' : 'Complete it and send it for review.'}</div>
+                        <div class="job-card-note">${job.repeatable ? 'This one comes back after approval.' : (isHourly ? 'Start the timer when you begin.' : 'Complete it and send it for review.')}</div>
                         <button class="btn-primary ${isHourly ? '' : 'btn-card-action'} job-card-btn" onclick="claimJob('${job.id}')">
                             ${isHourly ? 'Clock In' : 'Claim'}
                         </button>
@@ -1929,15 +2080,17 @@
         const title = document.getElementById('new-job-title').value.trim();
         const type = document.getElementById('new-job-type').value;
         const curr = document.getElementById('new-job-currency').value;
+        const repeatable = document.getElementById('new-job-repeatable').checked;
         const rate = parseFloat(document.getElementById('new-job-reward').value);
 
         if(!title || isNaN(rate) || rate <= 0) return showToast("Invalid job details");
 
-        dbData.jobs.push({ id: generateId(), title, type, currency: curr, rate, status: 'open', claimedBy: null });
+        dbData.jobs.push({ id: generateId(), title, type, currency: curr, rate, repeatable, status: 'open', claimedBy: null });
         saveDB();
         
         document.getElementById('new-job-title').value = '';
         document.getElementById('new-job-reward').value = '';
+        document.getElementById('new-job-repeatable').checked = false;
         closeCreateJobModal();
         showToast("Contract added to floor");
     }
@@ -1950,11 +2103,18 @@
         if(isNaN(finalAmt) || finalAmt <= 0) return showToast("Invalid payout amount");
 
         allocateEarnings(user, job.currency, finalAmt);
-        
-        job.status = 'completed';
+
+        if (job.repeatable) {
+            job.status = 'open';
+            job.claimedBy = null;
+            job.startTime = null;
+            job.endTime = null;
+        } else {
+            job.status = 'completed';
+        }
         logTransaction(user.id, 'credit', finalAmt, job.currency, `Contract: ${job.title}`);
         saveDB();
-        showToast(`Paid ${user.name} ${formatMoney(finalAmt, job.currency)} across buckets`);
+        showToast(`${job.repeatable ? 'Approved and reopened' : 'Paid'} ${user.name} ${formatMoney(finalAmt, job.currency)} across buckets`);
         renderAdminData();
     }
 

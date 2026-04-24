@@ -271,6 +271,291 @@
     border: 1px solid rgba(255,255,255,0.05);
 }
 
+.admin-user-list-grid,
+#admin-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-kid-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 20px;
+    height: 100%;
+    background: linear-gradient(145deg, rgba(32, 32, 34, 0.98) 0%, rgba(23, 23, 25, 0.98) 100%);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 18px 34px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.admin-kid-card-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: stretch;
+}
+
+.admin-kid-card-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    width: 100%;
+    min-width: 0;
+}
+
+.admin-kid-name {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.03em;
+}
+
+.admin-kid-status {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.35;
+}
+
+.admin-kid-total-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+}
+
+.admin-kid-total-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.025) 100%);
+    border: 1px solid rgba(255,255,255,0.09);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.admin-kid-total-pill.is-bb {
+    color: var(--gold);
+}
+
+.admin-kid-total-pill.is-usd {
+    color: var(--usd-green);
+}
+
+.admin-kid-main-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+}
+
+.admin-kid-deposit-btn,
+.admin-kid-manage-btn {
+    width: auto;
+    margin: 0;
+    min-height: 46px;
+    padding: 11px 18px;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    border-radius: 16px;
+}
+
+.admin-kid-toggle {
+    transition: transform 0.25s ease;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.admin-kid-toggle.is-open {
+    transform: rotate(180deg);
+}
+
+.admin-kid-details {
+    display: none;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.admin-kid-details.is-open {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-kid-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.admin-kid-balance-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.admin-kid-balance-card,
+.admin-kid-info-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 14px;
+}
+
+.admin-kid-balance-card.is-bb {
+    box-shadow: inset 0 1px 0 rgba(212, 175, 55, 0.04);
+}
+
+.admin-kid-balance-card.is-usd {
+    box-shadow: inset 0 1px 0 rgba(48, 209, 88, 0.04);
+}
+
+.admin-kid-balance-top,
+.admin-kid-adjust-actions,
+.admin-kid-bucket-row,
+.admin-kid-mini-stat,
+.admin-kid-activity-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-kid-balance-label,
+.admin-kid-info-title,
+.admin-kid-action-label {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.admin-kid-balance-value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.admin-kid-bucket-list,
+.admin-kid-activity-list,
+.admin-kid-mini-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-kid-bucket-list.compact {
+    margin-top: 10px;
+}
+
+.admin-kid-bucket-row,
+.admin-kid-mini-stat {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.admin-kid-bucket-row span:last-child,
+.admin-kid-mini-stat strong {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.admin-kid-adjust-actions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.admin-kid-summary {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.admin-kid-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.admin-kid-summary-row:first-child {
+    border-top: none;
+}
+
+.admin-kid-summary-row span:last-child {
+    color: var(--text-main);
+    text-align: right;
+    line-height: 1.45;
+}
+
+.admin-summary-divider {
+    color: rgba(255,255,255,0.28);
+    margin: 0 4px;
+}
+
+.admin-kid-activity-row {
+    align-items: flex-start;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.admin-kid-activity-row:first-child {
+    padding-top: 0;
+    border-top: none;
+}
+
+.admin-kid-activity-desc {
+    color: var(--text-main);
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+.admin-kid-activity-date {
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+
+.admin-kid-activity-amt {
+    flex-shrink: 0;
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+.admin-kid-activity-amt.is-bb {
+    color: var(--gold);
+}
+
+.admin-kid-activity-amt.is-usd {
+    color: var(--usd-green);
+}
+
+.admin-kid-activity-empty {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+
+.admin-kid-info-card.compact {
+    padding: 12px 14px;
+}
+
 /* --- List Items --- */
 .list-item {
     background: linear-gradient(135deg, var(--surface) 0%, #1a1a1a 100%); 

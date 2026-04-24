@@ -2,6 +2,12 @@
 
 /* Desktop Styles */
 @media (min-width: 768px) {
+    #admin-user-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
     .app-container {
         max-width: 800px;
         border: 1px solid rgba(255,255,255,0.1);
@@ -182,6 +188,29 @@
         flex-shrink: 0;
         align-items: center;
     }
+
+    .admin-kid-balance-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-kid-card-summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .admin-kid-total-pills {
+        justify-content: flex-end;
+    }
+
+    .admin-kid-main-actions {
+        justify-content: flex-end;
+    }
+
+    .admin-kid-card-head {
+        align-items: flex-start;
+    }
     
     .nav-btn {
         width: auto;
@@ -267,7 +296,7 @@
     }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 920px) {
     .allocation-editor-head,
     .admin-allocation-row {
         flex-direction: column;
@@ -276,6 +305,15 @@
 
     .allocation-grid {
         grid-template-columns: 1fr;
+    }
+
+    .admin-kid-card-head,
+    .admin-kid-adjust-actions,
+    .admin-kid-bucket-row,
+    .admin-kid-mini-stat,
+    .admin-kid-activity-row,
+    .admin-kid-summary-row {
+        align-items: flex-start;
     }
 
     .admin-jobs-overview {
@@ -314,8 +352,66 @@
     }
 }
 
+@media (max-width: 920px) {
+    .view {
+        padding: 16px;
+        padding-bottom: 90px;
+    }
+
+    #admin-user-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .admin-kid-total-pills,
+    .admin-kid-main-actions,
+    .admin-kid-detail-actions {
+        justify-content: center;
+    }
+
+    .admin-kid-card {
+        padding: 18px 16px;
+    }
+
+    .admin-kid-card-head {
+        align-items: center;
+        text-align: center;
+    }
+
+    .admin-kid-total-pills {
+        justify-content: center;
+    }
+
+    .admin-kid-main-actions {
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .admin-kid-total-pills {
+        min-width: 0;
+    }
+
+    .admin-kid-total-pill {
+        padding: 9px 11px;
+        font-size: 0.86rem;
+    }
+
+    .admin-kid-main-actions {
+        width: 100%;
+    }
+
+    .admin-kid-deposit-btn {
+        padding: 10px 14px;
+    }
+}
+
 /* Large Desktop */
 @media (min-width: 1200px) {
+    #admin-user-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .app-container {
         max-width: 900px;
         margin: 40px auto;
