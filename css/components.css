@@ -282,7 +282,7 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: 20px;
+    padding: 16px 18px;
     height: 100%;
     background: linear-gradient(145deg, rgba(32, 32, 34, 0.98) 0%, rgba(23, 23, 25, 0.98) 100%);
     border: 1px solid rgba(255,255,255,0.07);
@@ -292,7 +292,7 @@
 .admin-kid-card-summary {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     align-items: stretch;
 }
 
@@ -300,22 +300,29 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 3px;
+    gap: 4px;
     width: 100%;
     min-width: 0;
 }
 
+.admin-kid-title-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .admin-kid-name {
-    font-size: 1.2rem;
+    font-size: 1.14rem;
     font-weight: 800;
     color: var(--text-main);
     letter-spacing: -0.03em;
 }
 
 .admin-kid-status {
-    margin-top: 4px;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     line-height: 1.35;
 }
 
@@ -332,13 +339,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 46px;
-    padding: 10px 14px;
-    border-radius: 16px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 14px;
     background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.025) 100%);
     border: 1px solid rgba(255,255,255,0.09);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     white-space: nowrap;
@@ -355,8 +362,8 @@
 .admin-kid-main-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 12px;
     width: 100%;
 }
 
@@ -364,17 +371,20 @@
 .admin-kid-manage-btn {
     width: auto;
     margin: 0;
-    min-height: 46px;
-    padding: 11px 18px;
-    font-size: 0.92rem;
+    min-height: 40px;
+    padding: 10px 16px;
+    font-size: 0.88rem;
     white-space: nowrap;
-    border-radius: 16px;
+    border-radius: 14px;
 }
 
 .admin-kid-toggle {
     transition: transform 0.25s ease;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
 }
 
 .admin-kid-toggle.is-open {

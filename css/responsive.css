@@ -367,25 +367,25 @@
     .admin-kid-total-pills,
     .admin-kid-main-actions,
     .admin-kid-detail-actions {
-        justify-content: center;
+        justify-content: flex-start;
     }
 
     .admin-kid-card {
-        padding: 18px 16px;
+        padding: 14px 14px;
     }
 
     .admin-kid-card-head {
-        align-items: center;
-        text-align: center;
+        align-items: flex-start;
+        text-align: left;
     }
 
     .admin-kid-total-pills {
-        justify-content: center;
+        justify-content: flex-start;
     }
 
     .admin-kid-main-actions {
-        justify-content: center;
-        gap: 10px;
+        justify-content: space-between;
+        gap: 12px;
     }
 
     .admin-kid-total-pills {

@@ -1614,18 +1614,20 @@
                 <div class="list-item admin-kid-card">
                     <div class="admin-kid-card-summary">
                         <div class="admin-kid-card-head">
-                            <div class="admin-kid-name">${u.name}</div>
+                            <div class="admin-kid-title-row">
+                                <div class="admin-kid-name">${u.name}</div>
+                                <button class="btn-icon admin-kid-toggle ${isExpanded ? 'is-open' : ''}" onclick="toggleAdminKidCard('${u.id}')" aria-label="Toggle details">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
                             <div class="admin-kid-status">${statusBits.join(' • ')}</div>
                         </div>
-                        <div class="admin-kid-total-pills">
-                            <div class="admin-kid-total-pill is-bb">${formatMoney(u.balanceBB, 'BB')}</div>
-                            <div class="admin-kid-total-pill is-usd">${formatMoney(u.balanceUSD, 'USD')}</div>
-                        </div>
                         <div class="admin-kid-main-actions">
+                            <div class="admin-kid-total-pills">
+                                <div class="admin-kid-total-pill is-bb">${formatMoney(u.balanceBB, 'BB')}</div>
+                                <div class="admin-kid-total-pill is-usd">${formatMoney(u.balanceUSD, 'USD')}</div>
+                            </div>
                             <button class="btn-primary btn-green admin-kid-deposit-btn" onclick="openQuickDepositModal('${u.id}')">Deposit</button>
-                            <button class="btn-icon admin-kid-toggle ${isExpanded ? 'is-open' : ''}" onclick="toggleAdminKidCard('${u.id}')" aria-label="Toggle details">
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
                         </div>
                     </div>
 
