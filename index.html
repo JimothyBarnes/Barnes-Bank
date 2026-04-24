@@ -93,11 +93,22 @@
     <div id="view-admin-users" class="view">
         <div class="section-title">Family Accounts</div>
         <div id="admin-user-list"></div>
+
+        <div class="section-title">Sub-Administrators</div>
+        <div id="admin-subadmin-list"></div>
         
         <div class="section-title">Create Account</div>
-        <input type="text" id="new-kid-user" placeholder="Username" autocapitalize="none">
-        <input type="password" id="new-kid-pass" placeholder="Password">
-        <button class="btn-primary btn-secondary" onclick="createKid()">Create Account</button>
+        <input type="text" id="new-account-user" placeholder="Username" autocapitalize="none">
+        <input type="password" id="new-account-pass" placeholder="Password">
+        <select id="new-account-role" onchange="updateCreateAccountRoleUI()">
+            <option value="kid">Kid Account</option>
+            <option value="subadmin">Sub-Admin Account</option>
+        </select>
+        <div id="new-account-kid-access" style="display:none; margin-bottom:12px;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">Allowed Kid Accounts</div>
+            <div id="new-account-kid-options"></div>
+        </div>
+        <button class="btn-primary btn-secondary" onclick="createAccount()">Create Account</button>
     </div>
 
     <div id="view-admin-jobs" class="view">
@@ -155,6 +166,24 @@
         <div id="admin-store-items"></div>
     </div>
 
+    <div id="view-subadmin-home" class="view">
+        <div class="section-title">My Funding</div>
+        <div class="balances-wrapper">
+            <div class="card-balance card-bb">
+                <div class="card-label">Prepaid BB</div>
+                <div class="card-amt"><span id="subadmin-bal-bb">0</span><span class="card-curr curr-bb">BB</span></div>
+            </div>
+            <div class="card-balance card-usd">
+                <div class="card-label">Amount Owed</div>
+                <div class="card-amt"><span class="card-curr curr-usd">$</span><span id="subadmin-owed-usd">0.00</span></div>
+            </div>
+        </div>
+        <button class="btn-primary btn-green" onclick="openBuyBBModal()" style="width:100%; margin-bottom:20px;">Buy Barnes Bucks</button>
+
+        <div class="section-title">Kid Accounts</div>
+        <div id="subadmin-kid-list"></div>
+    </div>
+
     <nav class="bottom-nav" id="nav-kid" style="display:none;">
         <button class="nav-btn active" onclick="switchTab('kid', 'home', this)"><i class="fas fa-wallet"></i>Home</button>
         <button class="nav-btn" onclick="switchTab('kid', 'jobs', this)"><i class="fas fa-stopwatch"></i>Jobs</button>
@@ -166,6 +195,10 @@
         <button class="nav-btn active" onclick="switchTab('admin', 'users', this)"><i class="fas fa-users"></i>Accounts</button>
         <button class="nav-btn" onclick="switchTab('admin', 'jobs', this)"><i class="fas fa-clipboard-check"></i>Contracts</button>
         <button class="nav-btn" onclick="switchTab('admin', 'store', this)"><i class="fas fa-store"></i>Store</button>
+    </nav>
+
+    <nav class="bottom-nav" id="nav-subadmin" style="display:none;">
+        <button class="nav-btn active" onclick="switchTab('subadmin', 'home', this)"><i class="fas fa-users"></i>Accounts</button>
     </nav>
 </div>
 
@@ -350,6 +383,24 @@
     </div>
 </div>
 
+<!-- Edit Sub-Admin Modal -->
+<div id="edit-subadmin-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:440px;">
+        <h2 style="margin:0 0 20px; color:var(--text-main);">Edit Sub-Admin</h2>
+        <input type="text" id="edit-subadmin-name" placeholder="Display Name">
+        <input type="text" id="edit-subadmin-user" placeholder="Username" autocapitalize="none">
+        <input type="password" id="edit-subadmin-pass" placeholder="New Password (leave blank to keep current)">
+        <div style="margin-top:12px; margin-bottom:12px;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">Allowed Kid Accounts</div>
+            <div id="edit-subadmin-kid-options"></div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeEditSubadminModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="saveEditSubadmin()" style="flex:1;">Save Changes</button>
+        </div>
+    </div>
+</div>
+
 <!-- Manual Adjust Modal -->
 <div id="manual-adjust-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
     <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:460px;">
@@ -377,6 +428,63 @@
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn-primary btn-secondary" onclick="closePurchaseModal()" style="flex:1;">Cancel</button>
             <button class="btn-primary" onclick="confirmPurchase()" style="flex:1;">Buy Now</button>
+        </div>
+    </div>
+</div>
+
+<!-- Sub-Admin Funding Modal -->
+<div id="subadmin-fund-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:420px;">
+        <h2 id="subadmin-fund-title" style="margin:0 0 8px; color:var(--text-main);">Fund Account</h2>
+        <div id="subadmin-fund-subtitle" style="color:var(--text-muted); margin-bottom:18px;"></div>
+        <div class="row-inputs">
+            <select id="subadmin-fund-currency" style="flex:1;" onchange="updateSubadminFundPreview()">
+                <option value="USD">USD Deposit</option>
+                <option value="BB">BB Deposit</option>
+            </select>
+            <input type="number" id="subadmin-fund-amount" min="0" step="0.01" placeholder="Amount" style="flex:1;" oninput="updateSubadminFundPreview()">
+        </div>
+        <input type="text" id="subadmin-fund-note" placeholder="Memo for ledger">
+        <div class="admin-allocation-preview" id="subadmin-fund-preview" style="margin-top:12px;"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeSubadminFundModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary" onclick="submitSubadminFund()" style="flex:1;">Deposit</button>
+        </div>
+    </div>
+</div>
+
+<!-- Buy BB Modal -->
+<div id="buy-bb-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:420px;">
+        <h2 style="margin:0 0 8px; color:var(--text-main);">Buy Barnes Bucks</h2>
+        <div style="color:var(--text-muted); margin-bottom:18px;">Adds to your BB funding balance and to what you owe at 10 BB per $1.</div>
+        <input type="number" id="buy-bb-amount" min="0" step="0.01" placeholder="Amount of BB" oninput="updateBuyBBPreview()">
+        <input type="text" id="buy-bb-note" placeholder="Memo (Optional)">
+        <div class="admin-allocation-preview" id="buy-bb-preview" style="margin-top:12px;">Barnes Bucks are added 1:1 with USD owed in this first pass.</div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeBuyBBModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary btn-green" onclick="submitBuyBB()" style="flex:1;">Buy BB</button>
+        </div>
+    </div>
+</div>
+
+<!-- Resolve Subadmin Debt Modal -->
+<div id="resolve-debt-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:20px; width:90%; max-width:420px;">
+        <h2 id="resolve-debt-title" style="margin:0 0 8px; color:var(--text-main);">Record Payment</h2>
+        <div id="resolve-debt-subtitle" style="color:var(--text-muted); margin-bottom:18px;"></div>
+        <div class="row-inputs">
+            <select id="resolve-debt-currency" style="flex:1;" onchange="updateResolveDebtPreview()">
+                <option value="USD">USD Paid</option>
+                <option value="BB">BB Paid</option>
+            </select>
+            <input type="number" id="resolve-debt-amount" min="0" step="0.01" placeholder="Amount" style="flex:1;" oninput="updateResolveDebtPreview()">
+        </div>
+        <input type="text" id="resolve-debt-note" placeholder="Memo (Optional)">
+        <div class="admin-allocation-preview" id="resolve-debt-preview" style="margin-top:12px;"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-primary btn-secondary" onclick="closeResolveDebtModal()" style="flex:1;">Cancel</button>
+            <button class="btn-primary btn-green" onclick="submitResolveDebt()" style="flex:1;">Record Payment</button>
         </div>
     </div>
 </div>
@@ -457,6 +565,7 @@
         }
         return curr === 'USD' ? `$${parseFloat(amt).toFixed(2)}` : `${parseFloat(amt).toFixed(2)} BB`; 
     }
+    const USD_TO_BB_RATE = 10;
     const MONEY_BUCKETS = ['spending', 'savings', 'giving'];
     const DEFAULT_ALLOCATION = { spending: 50, savings: 40, giving: 10 };
 
@@ -535,6 +644,20 @@
         let changed = false;
         dbData.users.forEach(user => {
             if (ensureUserMoneyModel(user)) changed = true;
+            if (user.role === 'subadmin') {
+                if (!Array.isArray(user.allowedKids)) {
+                    user.allowedKids = [];
+                    changed = true;
+                }
+                if (typeof user.fundingBalanceBB !== 'number') {
+                    user.fundingBalanceBB = 0;
+                    changed = true;
+                }
+                if (typeof user.amountOwedUSD !== 'number') {
+                    user.amountOwedUSD = 0;
+                    changed = true;
+                }
+            }
         });
         return changed;
     }
@@ -811,6 +934,186 @@
         showToast(`${currentManualAdjustment.dir > 0 ? 'Updated' : 'Reduced'} ${user.name}'s ${currency} balance`);
     }
 
+    let currentSubadminFundingKid = null;
+
+    function openSubadminFundModal(kidId) {
+        const kid = dbData.users.find(u => u.id === kidId && u.role === 'kid');
+        if (!kid || !currentUser || currentUser.role !== 'subadmin') return;
+
+        currentSubadminFundingKid = kidId;
+        document.getElementById('subadmin-fund-title').innerText = `Fund ${kid.name}`;
+        document.getElementById('subadmin-fund-subtitle').innerText = 'USD deposits add to what you owe. BB deposits use your prepaid balance.';
+        document.getElementById('subadmin-fund-currency').value = 'USD';
+        document.getElementById('subadmin-fund-amount').value = '';
+        document.getElementById('subadmin-fund-note').value = '';
+        document.getElementById('subadmin-fund-modal').style.display = 'flex';
+        updateSubadminFundPreview();
+    }
+
+    function closeSubadminFundModal() {
+        document.getElementById('subadmin-fund-modal').style.display = 'none';
+        currentSubadminFundingKid = null;
+    }
+
+    function updateSubadminFundPreview() {
+        const preview = document.getElementById('subadmin-fund-preview');
+        if (!preview || !currentUser || currentUser.role !== 'subadmin') return;
+
+        const currency = document.getElementById('subadmin-fund-currency').value;
+        const amount = parseFloat(document.getElementById('subadmin-fund-amount').value);
+
+        if (isNaN(amount) || amount <= 0) {
+            preview.innerText = currency === 'USD'
+                ? `This will add to your amount owed. Current owed: $${(currentUser.amountOwedUSD || 0).toFixed(2)}`
+                : `This uses your prepaid BB balance. Available: ${formatMoney(currentUser.fundingBalanceBB || 0, 'BB')}`;
+            return;
+        }
+
+        preview.innerText = currency === 'USD'
+            ? `Kid receives ${formatMoney(amount, 'USD')} and your owed amount becomes $${roundMoney((currentUser.amountOwedUSD || 0) + amount).toFixed(2)}`
+            : `Kid receives ${formatMoney(amount, 'BB')} from your prepaid balance. Remaining: ${formatMoney(roundMoney((currentUser.fundingBalanceBB || 0) - amount), 'BB')}`;
+    }
+
+    function submitSubadminFund() {
+        if (!currentUser || currentUser.role !== 'subadmin' || !currentSubadminFundingKid) return;
+
+        const kid = dbData.users.find(u => u.id === currentSubadminFundingKid && u.role === 'kid');
+        const currency = document.getElementById('subadmin-fund-currency').value;
+        const amount = parseFloat(document.getElementById('subadmin-fund-amount').value);
+        const note = document.getElementById('subadmin-fund-note').value.trim() || 'Sub-admin funding';
+
+        if (!kid) return;
+        if (isNaN(amount) || amount <= 0) return showToast("Enter a valid amount");
+        if (!currentUser.allowedKids.includes(kid.id)) return showToast("You do not have access to that kid account");
+
+        if (currency === 'BB') {
+            if ((currentUser.fundingBalanceBB || 0) < amount) return showToast("Not enough prepaid BB");
+            currentUser.fundingBalanceBB = roundMoney((currentUser.fundingBalanceBB || 0) - amount);
+        } else {
+            currentUser.amountOwedUSD = roundMoney((currentUser.amountOwedUSD || 0) + amount);
+        }
+
+        allocateEarnings(kid, currency, amount);
+
+        const subadminIndex = dbData.users.findIndex(u => u.id === currentUser.id);
+        const kidIndex = dbData.users.findIndex(u => u.id === kid.id);
+        if (subadminIndex !== -1) dbData.users[subadminIndex] = currentUser;
+        if (kidIndex !== -1) dbData.users[kidIndex] = kid;
+
+        logTransaction(kid.id, 'credit', amount, currency, `Funded by ${currentUser.name}: ${note}`);
+        saveDB();
+        closeSubadminFundModal();
+        renderSubadminData();
+        showToast(`Funded ${kid.name} ${formatMoney(amount, currency)}`);
+    }
+
+    function openBuyBBModal() {
+        if (!currentUser || currentUser.role !== 'subadmin') return;
+        document.getElementById('buy-bb-amount').value = '';
+        document.getElementById('buy-bb-note').value = '';
+        document.getElementById('buy-bb-modal').style.display = 'flex';
+        updateBuyBBPreview();
+    }
+
+    function closeBuyBBModal() {
+        document.getElementById('buy-bb-modal').style.display = 'none';
+    }
+
+    function updateBuyBBPreview() {
+        const preview = document.getElementById('buy-bb-preview');
+        if (!preview || !currentUser || currentUser.role !== 'subadmin') return;
+        const amount = parseFloat(document.getElementById('buy-bb-amount').value);
+        if (isNaN(amount) || amount <= 0) {
+            preview.innerText = `10 BB = $1. Current owed: $${(currentUser.amountOwedUSD || 0).toFixed(2)}`;
+            return;
+        }
+
+        const usdEquivalent = roundMoney(amount / USD_TO_BB_RATE);
+        const newOwed = roundMoney((currentUser.amountOwedUSD || 0) + usdEquivalent);
+        preview.innerText = `Adds ${formatMoney(amount, 'BB')} to your BB balance and $${usdEquivalent.toFixed(2)} to what you owe. New owed: $${newOwed.toFixed(2)}`;
+    }
+
+    function submitBuyBB() {
+        if (!currentUser || currentUser.role !== 'subadmin') return;
+        const amount = parseFloat(document.getElementById('buy-bb-amount').value);
+        const note = document.getElementById('buy-bb-note').value.trim() || 'Bought Barnes Bucks';
+        if (isNaN(amount) || amount <= 0) return showToast("Enter a valid amount");
+
+        const usdEquivalent = roundMoney(amount / USD_TO_BB_RATE);
+        currentUser.fundingBalanceBB = roundMoney((currentUser.fundingBalanceBB || 0) + amount);
+        currentUser.amountOwedUSD = roundMoney((currentUser.amountOwedUSD || 0) + usdEquivalent);
+
+        const subadminIndex = dbData.users.findIndex(u => u.id === currentUser.id);
+        if (subadminIndex !== -1) dbData.users[subadminIndex] = currentUser;
+
+        saveDB();
+        closeBuyBBModal();
+        renderSubadminData();
+        showToast(`Added ${formatMoney(amount, 'BB')} to your BB balance`);
+    }
+
+    let currentResolvingSubadminId = null;
+
+    function openResolveDebtModal(userId) {
+        const user = dbData.users.find(u => u.id === userId && u.role === 'subadmin');
+        if (!user) return;
+
+        currentResolvingSubadminId = userId;
+        document.getElementById('resolve-debt-title').innerText = `Record Payment from ${user.name}`;
+        document.getElementById('resolve-debt-subtitle').innerText = `Current owed: $${(user.amountOwedUSD || 0).toFixed(2)} • 10 BB = $1`;
+        document.getElementById('resolve-debt-currency').value = 'USD';
+        document.getElementById('resolve-debt-amount').value = '';
+        document.getElementById('resolve-debt-note').value = '';
+        document.getElementById('resolve-debt-modal').style.display = 'flex';
+        updateResolveDebtPreview();
+    }
+
+    function closeResolveDebtModal() {
+        document.getElementById('resolve-debt-modal').style.display = 'none';
+        currentResolvingSubadminId = null;
+    }
+
+    function updateResolveDebtPreview() {
+        const preview = document.getElementById('resolve-debt-preview');
+        if (!preview || !currentResolvingSubadminId) return;
+
+        const user = dbData.users.find(u => u.id === currentResolvingSubadminId && u.role === 'subadmin');
+        if (!user) return;
+
+        const currency = document.getElementById('resolve-debt-currency').value;
+        const amount = parseFloat(document.getElementById('resolve-debt-amount').value);
+        if (isNaN(amount) || amount <= 0) {
+            preview.innerText = 'Record the amount they paid you. BB payments convert using 10 BB = $1.';
+            return;
+        }
+
+        const usdCredit = currency === 'USD' ? amount : roundMoney(amount / USD_TO_BB_RATE);
+        const remaining = Math.max(0, roundMoney((user.amountOwedUSD || 0) - usdCredit));
+        preview.innerText = `This clears $${usdCredit.toFixed(2)} of debt. Remaining owed: $${remaining.toFixed(2)}`;
+    }
+
+    function submitResolveDebt() {
+        if (!currentResolvingSubadminId) return;
+        const user = dbData.users.find(u => u.id === currentResolvingSubadminId && u.role === 'subadmin');
+        if (!user) return;
+
+        const currency = document.getElementById('resolve-debt-currency').value;
+        const amount = parseFloat(document.getElementById('resolve-debt-amount').value);
+        const note = document.getElementById('resolve-debt-note').value.trim() || 'Payment received';
+        if (isNaN(amount) || amount <= 0) return showToast("Enter a valid amount");
+
+        const usdCredit = currency === 'USD' ? amount : roundMoney(amount / USD_TO_BB_RATE);
+        user.amountOwedUSD = Math.max(0, roundMoney((user.amountOwedUSD || 0) - usdCredit));
+
+        const subadminIndex = dbData.users.findIndex(u => u.id === user.id);
+        if (subadminIndex !== -1) dbData.users[subadminIndex] = user;
+
+        saveDB();
+        closeResolveDebtModal();
+        renderAdminData();
+        showToast(`Recorded payment from ${user.name}`);
+    }
+
     // --- UI HELPERS ---
     function showToast(msg) {
         const t = document.createElement('div');
@@ -827,6 +1130,10 @@
 
         if (currentUser && currentUser.role === 'kid') {
             userLabel.innerText = 'Ready to earn?';
+            userName.innerText = currentUser.name;
+            userWrap.style.display = 'flex';
+        } else if (currentUser && currentUser.role === 'subadmin') {
+            userLabel.innerText = 'Funding access';
             userName.innerText = currentUser.name;
             userWrap.style.display = 'flex';
         } else {
@@ -850,6 +1157,10 @@
         if(role === 'admin') {
             updateHeaderUser();
             renderAdminData();
+        }
+        if(role === 'subadmin') {
+            updateHeaderUser();
+            renderSubadminData();
         }
     }
 
@@ -904,6 +1215,9 @@
             if (user.role === 'admin') {
                 document.getElementById('nav-admin').style.display = 'flex';
                 switchTab('admin', 'users', document.querySelector('#nav-admin .nav-btn'));
+            } else if (user.role === 'subadmin') {
+                document.getElementById('nav-subadmin').style.display = 'flex';
+                switchTab('subadmin', 'home', document.querySelector('#nav-subadmin .nav-btn'));
             } else {
                 document.getElementById('nav-kid').style.display = 'flex';
                 switchTab('kid', 'home', document.querySelector('#nav-kid .nav-btn'));
@@ -915,6 +1229,7 @@
 
     // --- EDIT ACCOUNT MODAL ---
     let currentEditingUser = null;
+    let currentEditingSubadmin = null;
 
     function openEditModal(userId) {
         currentEditingUser = dbData.users.find(u => u.id === userId);
@@ -936,6 +1251,77 @@
         
         // Show modal
         document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function openEditSubadminModal(userId) {
+        currentEditingSubadmin = dbData.users.find(u => u.id === userId && u.role === 'subadmin');
+        if (!currentEditingSubadmin) return;
+
+        document.getElementById('edit-subadmin-name').value = currentEditingSubadmin.name;
+        document.getElementById('edit-subadmin-user').value = currentEditingSubadmin.id;
+        document.getElementById('edit-subadmin-pass').value = '';
+
+        const container = document.getElementById('edit-subadmin-kid-options');
+        const kids = dbData.users.filter(u => u.role === 'kid');
+        container.innerHTML = kids.length
+            ? kids.map(kid => `
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:8px; color:var(--text-main); font-size:0.9rem;">
+                    <input type="checkbox" class="edit-subadmin-kid-option" value="${kid.id}" style="width:auto; margin:0;" ${currentEditingSubadmin.allowedKids.includes(kid.id) ? 'checked' : ''}>
+                    ${kid.name}
+                </label>
+            `).join('')
+            : '<div style="color:var(--text-muted); font-size:0.85rem;">No kid accounts available.</div>';
+
+        document.getElementById('edit-subadmin-modal').style.display = 'flex';
+    }
+
+    function closeEditSubadminModal() {
+        document.getElementById('edit-subadmin-modal').style.display = 'none';
+        currentEditingSubadmin = null;
+    }
+
+    function saveEditSubadmin() {
+        if (!currentEditingSubadmin) return;
+
+        const newName = document.getElementById('edit-subadmin-name').value.trim();
+        const newUsername = document.getElementById('edit-subadmin-user').value.toLowerCase().trim();
+        const newPassword = document.getElementById('edit-subadmin-pass').value;
+        const allowedKids = [...document.querySelectorAll('.edit-subadmin-kid-option:checked')].map(input => input.value);
+
+        if (!newName || !newUsername) return showToast("Name and username are required");
+
+        if (newUsername !== currentEditingSubadmin.id) {
+            const existingUser = dbData.users.find(u => u.id === newUsername);
+            if (existingUser) return showToast("Username already exists");
+        }
+
+        const userIndex = dbData.users.findIndex(u => u.id === currentEditingSubadmin.id);
+        if (userIndex === -1) return;
+
+        dbData.users[userIndex].name = newName;
+        dbData.users[userIndex].id = newUsername;
+        dbData.users[userIndex].allowedKids = allowedKids;
+        if (newPassword) dbData.users[userIndex].pass = newPassword;
+
+        if (newUsername !== currentEditingSubadmin.id) {
+            dbData.transactions.forEach(tx => {
+                if (tx.userId === currentEditingSubadmin.id) tx.userId = newUsername;
+            });
+
+            if (currentUser && currentUser.id === currentEditingSubadmin.id) {
+                currentUser.id = newUsername;
+                currentUser.name = newName;
+            }
+        }
+
+        if (currentUser && currentUser.id === newUsername) {
+            currentUser = dbData.users[userIndex];
+        }
+
+        saveDB();
+        closeEditSubadminModal();
+        renderAdminData();
+        showToast("Sub-admin updated successfully");
     }
 
     function closeEditModal() {
@@ -1597,6 +1983,7 @@
         // Users View
         const uList = document.getElementById('admin-user-list');
         uList.innerHTML = '';
+        renderCreateAccountKidOptions();
         normalizeUsers();
         dbData.users.filter(u => u.role === 'kid').forEach(u => {
             const recentTransactions = dbData.transactions.filter(tx => tx.userId === u.id).slice(0, 2);
@@ -1714,6 +2101,35 @@
                     </div>
                 </div>`;
         });
+
+        const subadminList = document.getElementById('admin-subadmin-list');
+        subadminList.innerHTML = '';
+        const subadmins = dbData.users.filter(u => u.role === 'subadmin');
+        if (!subadmins.length) {
+            subadminList.innerHTML = '<p style="color:var(--text-muted);">No sub-admin accounts yet.</p>';
+        } else {
+            subadmins.forEach(user => {
+                const allowedKids = user.allowedKids.map(id => dbData.users.find(k => k.id === id)?.name || id).join(', ') || 'No kid access yet';
+                subadminList.innerHTML += `
+                    <div class="list-item" style="flex-direction:column; align-items:stretch; gap:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                            <div>
+                                <div class="item-title">${user.name}</div>
+                                <div class="item-sub">${allowedKids}</div>
+                            </div>
+                            <button class="btn-icon" onclick="openEditSubadminModal('${user.id}')" style="background:var(--surface-light);"><i class="fas fa-edit"></i></button>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                            <div class="item-sub">Prepaid BB: <span style="color:var(--gold); font-weight:700;">${formatMoney(user.fundingBalanceBB || 0, 'BB')}</span></div>
+                            <div class="item-sub">Owes: <span style="color:var(--usd-green); font-weight:700;">$${(user.amountOwedUSD || 0).toFixed(2)}</span></div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+                            <button class="btn-primary btn-secondary" style="width:auto; padding:10px 16px;" onclick="openResolveDebtModal('${user.id}')">Record Payment</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
         // Job Management View
         const jList = document.getElementById('admin-job-list');
@@ -1866,6 +2282,37 @@
                         </div>
                     </div>
                 </div>`;
+        });
+    }
+
+    function renderSubadminData() {
+        syncCurrentUserFromDB();
+        if (!currentUser || currentUser.role !== 'subadmin') return;
+
+        document.getElementById('subadmin-bal-bb').innerText = (currentUser.fundingBalanceBB || 0).toFixed(2);
+        document.getElementById('subadmin-owed-usd').innerText = (currentUser.amountOwedUSD || 0).toFixed(2);
+
+        const container = document.getElementById('subadmin-kid-list');
+        container.innerHTML = '';
+        const kids = dbData.users.filter(u => u.role === 'kid' && currentUser.allowedKids.includes(u.id));
+
+        if (!kids.length) {
+            container.innerHTML = '<p style="color:var(--text-muted);">No kid accounts assigned to you yet.</p>';
+            return;
+        }
+
+        kids.forEach(kid => {
+            container.innerHTML += `
+                <div class="list-item" style="flex-direction:column; align-items:stretch; gap:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                        <div class="list-col">
+                            <div class="item-title">${kid.name}</div>
+                            <div class="item-sub">Barnes Bucks ${formatMoney(kid.balanceBB, 'BB')} • USD ${formatMoney(kid.balanceUSD, 'USD')}</div>
+                        </div>
+                    </div>
+                    <button class="btn-primary btn-green" onclick="openSubadminFundModal('${kid.id}')">Deposit Funds</button>
+                </div>
+            `;
         });
     }
 
@@ -2047,21 +2494,40 @@
         console.log("Transfer dropdown options count:", sel.options.length);
     }
 
-    function createKid() {
-        const id = document.getElementById('new-kid-user').value.toLowerCase().trim();
-        const pass = document.getElementById('new-kid-pass').value;
+    function updateCreateAccountRoleUI() {
+        const role = document.getElementById('new-account-role').value;
+        document.getElementById('new-account-kid-access').style.display = role === 'subadmin' ? 'block' : 'none';
+        renderCreateAccountKidOptions();
+    }
+
+    function renderCreateAccountKidOptions() {
+        const container = document.getElementById('new-account-kid-options');
+        if (!container) return;
+        const kids = dbData.users.filter(u => u.role === 'kid');
+        container.innerHTML = kids.length
+            ? kids.map(kid => `
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:8px; color:var(--text-main); font-size:0.9rem;">
+                    <input type="checkbox" class="new-account-kid-option" value="${kid.id}" style="width:auto; margin:0;">
+                    ${kid.name}
+                </label>
+            `).join('')
+            : '<div style="color:var(--text-muted); font-size:0.85rem;">Create kid accounts first.</div>';
+    }
+
+    function createAccount() {
+        const id = document.getElementById('new-account-user').value.toLowerCase().trim();
+        const pass = document.getElementById('new-account-pass').value;
+        const role = document.getElementById('new-account-role').value;
 
         if(!id || !pass) return showToast("Fill all fields");
         if(dbData.users.find(u => u.id === id)) return showToast("Username exists");
 
-        // Use username as display name (capitalize first letter)
         const name = id.charAt(0).toUpperCase() + id.slice(1);
-        
-        dbData.users.push({
+        const newUser = {
             id,
             name,
             pass,
-            role: 'kid',
+            role,
             balanceBB: 0,
             balanceUSD: 0,
             bbBuckets: defaultBuckets(),
@@ -2070,12 +2536,23 @@
             allocationUSD: cloneDefaultAllocation(),
             defaultHourlyRateBB: 5,
             defaultHourlyRateUSD: 3
-        });
+        };
+
+        if (role === 'subadmin') {
+            newUser.allowedKids = [...document.querySelectorAll('.new-account-kid-option:checked')].map(input => input.value);
+            newUser.fundingBalanceBB = 0;
+            newUser.amountOwedUSD = 0;
+        }
+
+        dbData.users.push(newUser);
         saveDB();
-        
-        document.getElementById('new-kid-user').value = '';
-        document.getElementById('new-kid-pass').value = '';
-        showToast("Account created"); renderAdminData();
+
+        document.getElementById('new-account-user').value = '';
+        document.getElementById('new-account-pass').value = '';
+        document.getElementById('new-account-role').value = 'kid';
+        updateCreateAccountRoleUI();
+        showToast(`${role === 'subadmin' ? 'Sub-admin' : 'Account'} created`);
+        renderAdminData();
     }
 
     function createJob() {
